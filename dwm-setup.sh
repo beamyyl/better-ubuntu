@@ -6,7 +6,7 @@ if [ "$choice" -eq 1 ]; then
     cd dwm
     sudo make clean install
 elif [ "$choice" -eq 2 ]; then
-    git clone https://github.com
+    git clone https://github.com/beamyyl/dwm.git
     cd dwm
     chmod +x setupdwm.sh
     sudo ./setupdwm.sh
