@@ -2,6 +2,9 @@ sudo add-apt-repository -y universe
 sudo add-apt-repository -y multiverse
 sudo add-apt-repository -y restricted
 sudo dpkg --add-architecture i386
+sudo apt install flatpak
+sudo apt install gnome-software-plugin-flatpak
+flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
 for s in $(snap list | awk '{print $1}' | tail -n +2); do sudo snap remove --purge "$s"; done
 sudo apt purge -y snapd firefox
