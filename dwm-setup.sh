@@ -1,6 +1,7 @@
 sudo apt update
 sudo apt install build-essential libx11-dev libxft-dev libxinerama-dev suckless-tools git xorg xinit x11-xserver-utils maim xclip -y
-read -p "Choose 1 for official barebones dwm, 2 for my dwm dots and 3 to close the script with just the build deps: " choice
+echo ''
+read -p $'Choose 1 for official barebones dwm,\n2 for my dwm dots,\n3 to close the script with just the build deps: ' choice
 if [ "$choice" -eq 1 ]; then
     git clone https://git.suckless.org/dwm
     cd dwm
