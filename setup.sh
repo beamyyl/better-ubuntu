@@ -24,3 +24,11 @@ EOF
 
 sudo apt update
 sudo apt upgrade -y
+
+echo ""
+read -p "Would you like to install Firefox as a .deb? (y/n): " choice
+if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
+    sudo apt update && sudo apt install -y firefox
+fi
+
+echo "Done. REBOOT RN!"
