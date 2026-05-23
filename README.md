@@ -18,4 +18,5 @@ chmod +x setup.sh
 ```
 ### 4. Run the script (will require sudo password)
 ```bash
-./setup.sh```
+./setup.sh
+```
