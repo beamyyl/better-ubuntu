@@ -3,7 +3,7 @@
 The "setup.sh" script fully removes SNAPS and snap-apps, INCLUDING FIREFOX!
 Make sure to run this script without setting up the default firefox, because everything **WILL BE PURGED**.
 
-## Installation
+## Installation (replace setup.sh with the script you wanna run)
 ### 1. Clone this repo by running:
 ```bash
 git clone https://github.com/beamyyl/better-ubuntu.git
