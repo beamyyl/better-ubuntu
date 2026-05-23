@@ -3,10 +3,12 @@ sudo apt install build-essential libx11-dev libxft-dev libxinerama-dev suckless-
 echo ''
 read -p $'Choose 1 for official barebones dwm,\n2 for my dwm dots,\n3 to close the script with just the build deps: ' choice
 if [ "$choice" -eq 1 ]; then
+    cd ~/
     git clone https://git.suckless.org/dwm
     cd dwm
     sudo make clean install
 elif [ "$choice" -eq 2 ]; then
+    cd ~/
     git clone https://github.com/beamyyl/dwm.git
     cd dwm
     chmod +x setupdwm.sh
