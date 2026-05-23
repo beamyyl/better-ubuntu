@@ -11,11 +11,16 @@ sudo apt purge -y snapd firefox
 sudo rm -rf ~/snap /var/snap /var/lib/snapd /var/cache/snapd
 
 sudo add-apt-repository -y ppa:xtradeb/apps
+sudo add-apt-repository -y ppa:mozillateam/ppa
 
 sudo tee /etc/apt/preferences.d/xtradeb-no-snap << 'EOF'
 Package: *
 Pin: release o=LP-PPA-xtradeb-apps
 Pin-Priority: 1001
+
+Package: firefox*
+Pin: release o=LP-PPA-mozillateam
+Pin-Priority: 1002
 
 Package: snapd
 Pin: release a=*
@@ -26,9 +31,9 @@ sudo apt update
 sudo apt upgrade -y
 
 echo ""
-read -p "Would you like to install Firefox as a .deb? (y/n): " choice
+read -p "Would you like to install Firefox back? (y/n): " choice
 if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
-    sudo apt update && sudo apt install -y firefox
+    sudo apt install -y firefox
 fi
 
-echo "Done. REBOOT RN!"
+echo "Done. Reboot your system to be sure every snap dependency is GONE"
