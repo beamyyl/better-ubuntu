@@ -1,4 +1,4 @@
-# This repo includes several scripts that make Ubuntu a better distro, including setup for other DE's like Kde Plasma.
+# This repo includes several scripts that make Ubuntu a better distro, including setup for other DE's.
 
 The "setup.sh" script fully removes SNAPS and snap-apps, INCLUDING FIREFOX!
 Make sure to run this script without setting up the default firefox, because everything **WILL BE PURGED**.
