@@ -7,12 +7,14 @@ if [ "$choice" -eq 1 ]; then
     git clone https://git.suckless.org/dwm
     cd dwm
     sudo make clean install
+    echo 'The dwm folder is located at ~/dwm/'
 elif [ "$choice" -eq 2 ]; then
     cd ~/
     git clone https://github.com/beamyyl/dwm.git
     cd dwm
     chmod +x setupdwm.sh
     sudo ./setupdwm.sh
+    echo 'The dwm folder is located at ~/dwm/'
 elif [ "$choice" -eq 3 ]; then
     exit 0
 else
