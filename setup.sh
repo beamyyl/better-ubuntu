@@ -29,6 +29,7 @@ EOF
 
 sudo apt update
 sudo apt upgrade -y
+sudo apt autoremove -y
 
 echo ""
 read -p "Would you like to install Firefox back? (y/n): " choice
