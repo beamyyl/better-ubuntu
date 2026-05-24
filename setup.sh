@@ -2,8 +2,8 @@ sudo add-apt-repository -y universe
 sudo add-apt-repository -y multiverse
 sudo add-apt-repository -y restricted
 sudo dpkg --add-architecture i386
-sudo apt install flatpak
-sudo apt install gnome-software-plugin-flatpak
+sudo apt install flatpak -y
+sudo apt install gnome-software-plugin-flatpak -y
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
 for s in $(snap list | awk '{print $1}' | tail -n +2); do sudo snap remove --purge "$s"; done
@@ -32,7 +32,7 @@ sudo apt upgrade -y
 sudo apt autoremove -y
 
 echo ""
-read -p "Would you like to install Firefox back? (y/n): " choice
+read -p "Would you like to install Firefox back? (y/N): " choice
 if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
     sudo apt install -y firefox
 fi
