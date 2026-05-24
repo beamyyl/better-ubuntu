@@ -4,5 +4,8 @@ echo -e "network:\n  version: 2\n  renderer: NetworkManager" | sudo tee /etc/net
 sudo rm -f /etc/netplan/00-installer-config.yaml /etc/netplan/50-cloud-init.yaml
 sudo netplan apply
 sudo systemctl enable NetworkManager --now
-sudo apt autoremove -y
-sudo systemctl disable systemd-networkd.service
+sudo systemctl disable systemd-networkd.service --now
+sudo systemctl mask systemd-networkd-wait-online.service
+sudo touch /etc/NetworkManager/conf.d/10-globally-managed-devices.conf
+sudo sed -i 's/managed=false/managed=true/g' /etc/NetworkManager/NetworkManager.conf
+sudo systemctl restart NetworkManager
