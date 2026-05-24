@@ -5,5 +5,4 @@ sudo rm -f /etc/netplan/00-installer-config.yaml /etc/netplan/50-cloud-init.yaml
 sudo netplan apply
 sudo systemctl enable NetworkManager --now
 sudo apt autoremove -y
-sudo rm -rf /etc/netplan/ /usr/share/netplan/
 sudo systemctl disable systemd-networkd.service
