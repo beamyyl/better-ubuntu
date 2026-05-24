@@ -1,6 +1,6 @@
 sudo apt update
 sudo apt upgrade -y
-sudo apt install kde-plasma-desktop sddm-theme-breeze breeze-gtk-theme breeze-icon-theme konsole dolphin kde-spectacle -y
+sudo apt install kde-plasma-desktop plasma-session-x11 sddm-theme-breeze breeze-gtk-theme breeze-icon-theme konsole dolphin kde-spectacle -y
 sudo dpkg-reconfigure sddm
 sudo mkdir -p /etc/sddm.conf.d
 if [ -f /etc/sddm.conf.d/50-ubuntu-budgie.conf ]; then
