@@ -7,5 +7,6 @@ sudo systemctl enable NetworkManager --now
 sudo systemctl disable systemd-networkd.service --now
 sudo systemctl mask systemd-networkd-wait-online.service
 sudo touch /etc/NetworkManager/conf.d/10-globally-managed-devices.conf
-sudo sed -i 's/managed=false/managed=true/g' /etc/NetworkManager/NetworkManager.conf
+#sudo sed -i 's/managed=false/managed=true/g' /etc/NetworkManager/NetworkManager.conf
 sudo systemctl restart NetworkManager
+sudo reboot
