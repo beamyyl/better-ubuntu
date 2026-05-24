@@ -6,3 +6,4 @@ sudo netplan apply
 sudo systemctl enable NetworkManager --now
 sudo apt autoremove -y
 sudo rm -rf /etc/netplan/ /usr/share/netplan/
+sudo systemctl disable systemd-networkd.service
