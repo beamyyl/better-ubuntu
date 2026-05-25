@@ -35,6 +35,13 @@ Pin: release a=*
 Pin-Priority: -10
 EOF
 
+sudo mkdir -p /etc/dpkg/dpkg.cfg.d
+sudo tee /etc/dpkg/dpkg.cfg.d/block-browser-branding << 'EOF'
+path-exclude=/usr/lib/firefox/distribution/*
+path-exclude=/etc/chromium/*
+path-exclude=/etc/chromium-browser/*
+EOF
+
 sudo apt update
 sudo apt upgrade -y
 sudo apt autoremove -y
