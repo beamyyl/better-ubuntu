@@ -1,14 +1,18 @@
+#!/bin/bash
+
 sudo add-apt-repository -y universe
 sudo add-apt-repository -y multiverse
 sudo add-apt-repository -y restricted
 sudo dpkg --add-architecture i386
-sudo apt install flatpak -y
-sudo apt install gnome-software-plugin-flatpak -y
-flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-for s in $(snap list | awk '{print $1}' | tail -n +2); do sudo snap remove --purge "$s"; done
-sudo apt purge -y snapd firefox
-sudo rm -rf ~/snap /var/snap /var/lib/snapd /var/cache/snapd
+sudo apt update
+sudo apt install flatpak gnome-software-plugin-flatpak -y
+flatpak remote-add --if-not-exists flathub https://flathub.org
+
+sudo systemctl stop snapd.service snapd.socket 2>/dev/null
+
+sudo apt purge -y snapd
+sudo rm -rf ~/snap /var/snap /var/lib/snapd /var/cache/snapd /usr/lib/snapd
 
 sudo add-apt-repository -y ppa:xtradeb/apps
 sudo add-apt-repository -y ppa:mozillateam/ppa
@@ -22,6 +26,10 @@ Package: firefox*
 Pin: release o=LP-PPA-mozillateam
 Pin-Priority: 1002
 
+Package: firefox*
+Pin: release o=Ubuntu*
+Pin-Priority: -1
+
 Package: snapd
 Pin: release a=*
 Pin-Priority: -10
@@ -32,9 +40,9 @@ sudo apt upgrade -y
 sudo apt autoremove -y
 
 echo ""
-read -p "Would you like to install Firefox back? (y/N): " choice
-if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
+read -p "Would you like to install Firefox back as a native .deb? (y/N): " choice
+if [[ "$choice" =~ ^[Yy]$ ]]; then
     sudo apt install -y firefox
 fi
 
-echo "Done. Reboot your system to be sure every snap dependency is GONE"
+echo "Done. Reboot your system to ensure all changes take effect cleanly!"
