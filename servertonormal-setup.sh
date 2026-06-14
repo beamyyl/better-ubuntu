@@ -18,5 +18,6 @@ netplan generate
 netplan apply
 systemctl enable NetworkManager.service
 systemctl restart NetworkManager.service
+systemctl disable systemd-networkd-wait-online
 
 sudo reboot
