@@ -3,7 +3,7 @@ echo 'Run with SUDO!'
 sleep 3
 
 apt update
-apt install -y network-manager iputils-ping net-tools dnsutils curl
+apt install -y network-manager iputils-ping net-tools dnsutils curl software-properties-common
 
 cd /etc/netplan
 mkdir -p ./bak/
