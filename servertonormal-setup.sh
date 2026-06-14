@@ -27,6 +27,7 @@ systemctl disable systemd-networkd-wait-online
 systemctl disable snapd snapd.socket
 apt purge -y snapd
 apt purge -y cloud-init
+apt purge -y needrestart
 rm -rf /etc/cloud/ /var/lib/cloud/
 apt purge -y multipath-tools
 apt autoremove --purge -y
