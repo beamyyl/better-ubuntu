@@ -1,4 +1,5 @@
 # This repo includes several scripts that make Ubuntu a better distro, including setup for other DE's.
+# If you're installing with the ubuntu server iso, I recommend cloning this repo already on the usb disk, in case youre using USB Tethering.
 
 The "setup.sh" script fully removes SNAPS and snap-apps, INCLUDING FIREFOX!
 Make sure to run this script without setting up the default firefox, because everything **WILL BE PURGED**.
