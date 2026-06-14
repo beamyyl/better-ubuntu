@@ -1,10 +1,6 @@
 echo 'Run with SUDO!'
 sleep 3
 apt update
-apt purge cloud-init
-rm -rf /etc/cloud/ /var/lib/cloud/
-apt purge multipath-tools
-apt autoremove --purge
 apt install -y network-manager iputils-ping net-tools dnsutils curl
 
 cd /etc/netplan
@@ -23,5 +19,9 @@ systemctl restart NetworkManager.service
 systemctl disable systemd-networkd-wait-online
 systemctl disable snapd snapd.socket
 apt purge snapd
+apt purge cloud-init
+rm -rf /etc/cloud/ /var/lib/cloud/
+apt purge multipath-tools
+apt autoremove --purge
 
 sudo reboot
