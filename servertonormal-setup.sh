@@ -1,9 +1,11 @@
-sudo apt update
-sudo apt purge cloud-init
-sudo rm -rf /etc/cloud/ /var/lib/cloud/
-sudo apt purge multipath-tools
-sudo apt autoremove --purge
-sudo apt install -y network-manager iputils-ping net-tools dnsutils curl
+echo 'Run with SUDO!'
+sleep 3
+apt update
+apt purge cloud-init
+rm -rf /etc/cloud/ /var/lib/cloud/
+apt purge multipath-tools
+apt autoremove --purge
+apt install -y network-manager iputils-ping net-tools dnsutils curl
 
 cd /etc/netplan
 cp 01-netcfg.yaml 01-netcfg.yaml.BAK
@@ -19,5 +21,7 @@ netplan apply
 systemctl enable NetworkManager.service
 systemctl restart NetworkManager.service
 systemctl disable systemd-networkd-wait-online
+systemctl disable snapd snapd.socket
+apt purge snapd
 
 sudo reboot
