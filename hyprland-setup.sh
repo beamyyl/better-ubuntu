@@ -11,9 +11,7 @@ while true; do
             break
             ;;
         2 ) 
-            git clone https://gitlab.com/kralos/hyprbuntu
-            cd hyprbuntu/
-            ./setup-hyprbuntu.sh
+            echo "Go to https://github.com/LinuxBeginnings/Ubuntu-Hyprland and follow the steps."
             break
             ;;
         * ) 
