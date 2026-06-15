@@ -1,4 +1,4 @@
-# This repo includes several scripts that make Ubuntu a better distro, including setup for other DE's and fully de-snapping it.
+# This repo includes several scripts that make Ubuntu a better distro, including setup for other DE's and fully de-snapping it. I recommend installing via the Server ISO.
 # If you're installing with the ubuntu server iso, CLONE this repo to the USB, if you're using USB Tethering¹ for network. 
 
 The "setup.sh" script fully removes SNAPS and snap-apps, INCLUDING FIREFOX!
