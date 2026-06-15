@@ -7,7 +7,7 @@ Make sure to run this script without setting up the default firefox, because eve
 (replace setup.sh with the script you wanna run)
 ### 1. Clone this repo by running:
 ```bash
-git clone https://github.com/beamyyl/better-ubuntu.git
+git clone https://github.com/beamyyl/better-ubuntu
 ```
 ### 2. Go into the cloned folder:
 ```bash
@@ -23,4 +23,5 @@ chmod +x setup.sh
 ```
 
 #
+
 ¹: If after installing you're stuck on service 'systemd-networkd-wait-online', you must reboot into the grub menu, press `e`, go to the end of the Linux line and add `init=/bin/bash`, then `ctrl + x` or `F10`. After it boots, run `mount -o remount,rw /` and `systemctl --root=/ mask systemd-networkd-wait-online.service` and force reboot. Then, run the fix usb tethering script (from the usb cloned repo) by mounting your usb to /mnt and then copying it like `cp -r /mnt/better-ubuntu .` and you should be able to run the `servertonormal.sh` script to enable NetworkManager.
