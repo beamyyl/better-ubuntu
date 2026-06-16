@@ -174,7 +174,7 @@ update-grub
 
 echo "--> Provisioning users and system credentials..."
 echo "root:$ROOT_PASS" | chpasswd
-chsh -s /bin/bash
+chsh -s /bin/bash root
 
 useradd -m -s /bin/bash -G sudo,plugdev,netdev,audio,video,input "$NEW_USER"
 echo "$NEW_USER:$NEW_USER_PASS" | chpasswd
@@ -187,5 +187,5 @@ for dir in /run /sys /proc /dev/pts /dev; do
 done
 
 echo "=========================================================="
-echo " Process complete! Unmount /mnt and initiate system reboot."
+echo " Done! You can now reboot your system, or chroot into /mnt."
 echo "=========================================================="
