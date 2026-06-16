@@ -6,20 +6,20 @@ TARGET="/mnt"
 echo "=== 1. Ensuring Mount Points Exist ==="
 mkdir -p "${TARGET}"
 
-# Run debootstrap first to deploy the absolute base skeleton
 echo "=== 2. Running Debootstrap (Resolute Minbase) ==="
+apt install debootstrap
 debootstrap --variant=minbase resolute "${TARGET}" http://archive.ubuntu.com/ubuntu/
 
-echo "=== 3. Creating Virtual FS Mount Nodes ==="
+echo "=== 3. Creating Virtual FS Mounts ==="
 mkdir -p "${TARGET}"/{proc,sys,dev,boot/efi,tmp}
 
-echo "=== 4. Mounting API Virtual Filesystems ==="
+echo "=== 4. Mounting Virtual Filesystems ==="
 mount --types proc /proc "${TARGET}/proc"
 mount --types sysfs /sys "${TARGET}/sys"
 mount --bind /dev "${TARGET}/dev"
 mount --bind /dev/pts "${TARGET}/dev/pts"
 
-echo "=== 5. Generating Mirror Sources (Resolute) ==="
+echo "=== 5. Generating Mirror Sources ==="
 cat <<EOF > "${TARGET}/etc/apt/sources.list"
 deb http://archive.ubuntu.com/ubuntu/ resolute main restricted universe multiverse
 deb http://archive.ubuntu.com/ubuntu/ resolute-updates main restricted universe multiverse
@@ -31,7 +31,7 @@ cat << 'CHROOT_EOF' > "${TARGET}/tmp/chroot_setup.sh"
 #!/usr/bin/env bash
 set -e
 
-echo "Updating apt cache for Resolute..."
+echo "Updating apt cache..."
 apt-get update
 
 echo "Installing Linux kernel and hardware firmware blobs..."
@@ -77,4 +77,3 @@ umount "${TARGET}/sys"     || umount -l "${TARGET}/sys"
 umount "${TARGET}/proc"    || umount -l "${TARGET}/proc"
 
 echo "=== Done! Ready to reboot. ==="
-echo "You can now run: reboot"
