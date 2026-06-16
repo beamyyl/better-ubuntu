@@ -1,0 +1,86 @@
+#cloud-config
+autoinstall:
+  version: 1
+  
+  # 1. Force the use of the lighter desktop metapackage and add i386 + Flatpak tools
+  apt:
+    fallback: offline
+    primary:
+      - arches: [amd64, i386]
+        uri: http://archive.ubuntu.com/ubuntu/
+    debconf-selections: |
+      bcf bcf/add-levels select universe, multiverse, restricted
+  
+  packages:
+    - ubuntu-desktop-minimal
+    - flatpak
+    - gnome-software-plugin-flatpak
+    - synaptic # Great native GUI alternative to the Snap Store
+  
+  # 2. BLOCK SNAPS IMMEDIATELY AT THE START OF THE INSTALLER
+  early-commands:
+    - mkdir -p /etc/apt/preferences.d
+    - |
+      cat <<EOF > /etc/apt/preferences.d/nosnap.pref
+      Package: snapd
+      Pin: release a=*
+      Pin-Priority: -10
+      EOF
+
+  # 3. RUN THE REST OF YOUR DETAILED OPTIMIZATIONS IN THE TARGET SYSTEM
+  late-commands:
+    # Carry over the absolute snap ban to the final system immediately
+    - mkdir -p /target/etc/apt/preferences.d
+    - |
+      cat <<EOF > /target/etc/apt/preferences.d/nosnap.pref
+      Package: snapd
+      Pin: release a=*
+      Pin-Priority: -10
+      EOF
+
+    # Add 32-bit architecture for compatibility
+    - curtin in-target -- dpkg --add-architecture i386
+
+    # Inject the exact PPA preferences from your script
+    - |
+      cat <<EOF > /target/etc/apt/preferences.d/xtradeb-no-snap
+      Package: *
+      Pin: release o=LP-PPA-xtradeb-apps
+      Pin-Priority: 1001
+
+      Package: firefox*
+      Pin: release o=LP-PPA-mozillateam
+      Pin-Priority: 1002
+
+      Package: firefox*
+      Pin: release o=Ubuntu*
+      Pin-Priority: -1
+
+      Package: snapd
+      Pin: release a=*
+      Pin-Priority: -10
+      EOF
+
+    # Apply your browser branding blocks to protect package integrity
+    - mkdir -p /target/etc/dpkg/dpkg.cfg.d
+    - |
+      cat <<EOF > /target/etc/dpkg/dpkg.cfg.d/block-browser-branding
+      path-exclude=/usr/lib/firefox/distribution/*
+      path-exclude=/etc/chromium/*
+      path-exclude=/etc/chromium-browser/*
+      EOF
+
+    # Add repositories natively via software-properties-common inside the target chroot
+    - curtin in-target -- add-apt-repository -y ppa:xtradeb/apps
+    - curtin in-target -- add-apt-repository -y ppa:mozillateam/ppa
+    
+    # Configure Flatpak's Flathub mirror natively
+    - curtin in-target -- flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+    # Final sweep: Update, completely purge any transitively pulled snap traces, install native Firefox
+    - curtin in-target -- apt-get update
+    - curtin in-target -- apt-get purge -y snapd
+    - rm -rf /target/root/snap /target/var/snap /target/var/lib/snapd /target/var/cache/snapd /target/usr/lib/snapd
+    - curtin in-target -- apt-get install -y firefox
+    - curtin in-target -- apt-get dist-upgrade -y
+    - curtin in-target -- apt-get autoremove -y
