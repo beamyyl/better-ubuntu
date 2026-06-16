@@ -10,6 +10,7 @@ echo "=========================================================="
 echo " Starting De-snapped Ubuntu ($RELEASE) Installation "
 echo "=========================================================="
 
+# 1. Sanity checks for pre-existing mountpoints
 if ! mountpoint -q "$TARGET"; then
     echo "ERROR: $TARGET is not a target mountpoint. Please mount your root partition."
     exit 1
@@ -35,18 +36,47 @@ else
     echo "    Detected target mirror: $MIRROR"
 fi
 
-# 3. Ensure debootstrap is installed on the host environment
+# 3. Interactively gather user details on the host system BEFORE entering chroot
+# This ensures standard input is completely open and clean.
+echo ""
+read -p "Enter desired username for the new system: " username
+while [ -z "$username" ]; do
+    read -p "Username cannot be empty. Enter username: " username
+done
+
+read -s -p "Enter password for $username: " user_password
+echo ""
+read -s -p "Confirm password for $username: " user_password_confirm
+echo ""
+
+if [ "$user_password" != "$user_password_confirm" ]; then
+    echo "ERROR: Passwords do not match!"
+    exit 1
+fi
+
+read -s -p "Enter password for root account: " root_password
+echo ""
+read -s -p "Confirm password for root account: " root_password_confirm
+echo ""
+
+if [ "$root_password" != "$root_password_confirm" ]; then
+    echo "ERROR: Root passwords do not match!"
+    exit 1
+fi
+echo ""
+
+# 4. Ensure debootstrap is installed on the host environment
 if ! command -v debootstrap &> /dev/null; then
     echo "--> debootstrap not found. Installing on live environment..."
     apt-get update
     apt-get install -y debootstrap
 fi
 
-# 4. Securely bootstrap the core system with full GPG validation
+# 5. Securely bootstrap the core system with full GPG validation
 echo "--> Bootstrapping base system via debootstrap..."
 debootstrap --arch=amd64 --keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg "$RELEASE" "$TARGET" "$MIRROR"
 
-# 5. Dynamically capture block device UUIDs to populate fstab
+# 6. Dynamically capture block device UUIDs to populate fstab
 echo "--> Generating /etc/fstab configuration..."
 ROOT_UUID=$(blkid -s UUID -o value $(findmnt -n -o SOURCE --target "$TARGET"))
 EFI_UUID=$(blkid -s UUID -o value $(findmnt -n -o SOURCE --target "$TARGET/boot/efi"))
@@ -57,7 +87,7 @@ UUID=$ROOT_UUID / ext4 errors=remount-ro 0 1
 UUID=$EFI_UUID /boot/efi vfat umask=0077 0 2
 FSTAB
 
-# 6. Configure foundational network assets
+# 7. Configure foundational network assets
 echo "$HOSTNAME" > "$TARGET/etc/hostname"
 cat << HOSTS > "$TARGET/etc/hosts"
 127.0.0.1   localhost
@@ -68,18 +98,21 @@ ff02::1     ip6-allnodes
 ff02::2     ip6-allrouters
 HOSTS
 
-# 7. Bind mount virtual filesystems into target structure
+# 8. Bind mount virtual filesystems into target structure
 echo "--> Mounting API virtual filesystems..."
 for dir in /dev /dev/pts /proc /sys /run; do
     mount --bind "$dir" "$TARGET$dir"
 done
 
-# 8. Execute core deployment inside the isolated chroot
+# 9. Execute core deployment inside the isolated chroot
 echo "--> Shifting context to target environment..."
-chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" << 'CHROOT_EOF'
+chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" << 'CHROOT_EOF'
 set -e
 TARGET_RELEASE="$1"
 TARGET_MIRROR="$2"
+NEW_USER="$3"
+NEW_USER_PASS="$4"
+ROOT_PASS="$5"
 
 echo "--> Initializing package manager and architecture layers..."
 # Write out modern deb822 source sheets using the parsed mirror
@@ -161,17 +194,17 @@ echo "--> Configuring EFI boot entries..."
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=Ubuntu --recheck
 update-grub
 
-echo "--> Define root authentication parameters:"
-passwd root
+echo "--> Provisioning users and system credentials..."
+# Provision root account password securely using a string pipe
+echo "root:$ROOT_PASS" | chpasswd
 
-echo "--> Setting up primary standard user profile:"
-read -p "Enter desired username: " username
-useradd -m -s /bin/bash -G sudo,plugdev,netdev "$username"
-passwd "$username"
+# Setup primary user account
+useradd -m -s /bin/bash -G sudo,plugdev,netdev "$NEW_USER"
+echo "$NEW_USER:$NEW_USER_PASS" | chpasswd
 
 CHROOT_EOF
 
-# 9. Safe teardown of working namespaces
+# 10. Safe teardown of working namespaces
 echo "--> Tear down external bind structures..."
 for dir in /run /sys /proc /dev/pts /dev; do
     umount "$TARGET$dir" || true
