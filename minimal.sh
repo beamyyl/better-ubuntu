@@ -165,7 +165,7 @@ EOF
 apt-get update
 
 # Install infrastructure modules necessary for manual PPA ingestion
-apt-get install -y --no-install-recommends software-properties-common gnupg
+apt-get install -y software-properties-common gnupg
 
 # Add external PPAs
 add-apt-repository -y ppa:xtradeb/apps
@@ -176,8 +176,7 @@ echo "--> Pulling base kernel, boot management, and network stacks..."
 apt-get install -y linux-image-generic grub-efi-amd64 network-manager
 
 echo "--> Building minimal desktop stack minus snap interventions..."
-# --no-install-recommends blocks indirect transitions or unwanted transitional snaps
-apt-get install -y --no-install-recommends ubuntu-desktop-minimal
+apt-get install -y ubuntu-desktop-minimal
 
 echo "--> Formatting flatpak delivery layout..."
 apt-get install -y flatpak gnome-software-plugin-flatpak
