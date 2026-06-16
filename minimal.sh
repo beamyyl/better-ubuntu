@@ -3,26 +3,29 @@ set -e
 
 TARGET="/mnt"
 
-echo "=== 1. Mounting API Virtual Filesystems ==="
+echo "=== 1. Ensuring Mount Points Exist ==="
+mkdir -p "${TARGET}"/{proc,sys,dev,boot/efi,tmp}
+
+echo "=== 2. Mounting API Virtual Filesystems ==="
 mount --types proc /proc "${TARGET}/proc"
 mount --types sysfs /sys "${TARGET}/sys"
 mount --bind /dev "${TARGET}/dev"
 mount --bind /dev/pts "${TARGET}/dev/pts"
 
-echo "=== 2. Generating Mirror Sources (Noble) ==="
+echo "=== 3. Generating Mirror Sources (Resolute) ==="
 cat <<EOF > "${TARGET}/etc/apt/sources.list"
-deb http://archive.ubuntu.com/ubuntu/ noble main restricted universe multiverse
-deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe multiverse
-deb http://archive.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu/ resolute main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu/ resolute-updates main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu/ resolute-security main restricted universe multiverse
 EOF
 
-echo "=== 3. Provisioning the Base System inside Chroot ==="
-# We write a secondary execution script directly into the chroot target
+echo "=== 4. Provisioning the Base System inside Chroot ==="
+# Write the secondary execution script directly into the chroot target
 cat << 'CHROOT_EOF' > "${TARGET}/tmp/chroot_setup.sh"
 #!/usr/bin/env bash
 set -e
 
-echo "Updating apt cache..."
+echo "Updating apt cache for Resolute..."
 apt-get update
 
 echo "Installing Linux kernel and hardware firmware blobs..."
@@ -50,17 +53,17 @@ passwd
 
 CHROOT_EOF
 
-# Execute the script safely inside the chroot jail
+# Execute the setup script inside the chroot jail
 chmod +x "${TARGET}/tmp/chroot_setup.sh"
 chroot "${TARGET}" /tmp/chroot_setup.sh
 
-# Cleanup the setup script inside the host structure
+# Cleanup the script from the target environment
 rm -f "${TARGET}/tmp/chroot_setup.sh"
 
-echo "=== 4. Detaching Virtual Mounts and Syncing ==="
+echo "=== 5. Detaching Virtual Mounts and Syncing ==="
 sync
 
-# Attempt regular unmounts loop backwards, using lazy unmount fallback if busy
+# Clean unmount loops with lazy fallback for stubborn locks
 umount "${TARGET}/boot/efi" || umount -l "${TARGET}/boot/efi"
 umount "${TARGET}/dev/pts" || umount -l "${TARGET}/dev/pts"
 umount "${TARGET}/dev"     || umount -l "${TARGET}/dev"
