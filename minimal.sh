@@ -4,23 +4,29 @@ set -e
 TARGET="/mnt"
 
 echo "=== 1. Ensuring Mount Points Exist ==="
+mkdir -p "${TARGET}"
+
+# Run debootstrap first to deploy the absolute base skeleton
+echo "=== 2. Running Debootstrap (Resolute Minbase) ==="
+debootstrap --variant=minbase resolute "${TARGET}" http://archive.ubuntu.com/ubuntu/
+
+echo "=== 3. Creating Virtual FS Mount Nodes ==="
 mkdir -p "${TARGET}"/{proc,sys,dev,boot/efi,tmp}
 
-echo "=== 2. Mounting API Virtual Filesystems ==="
+echo "=== 4. Mounting API Virtual Filesystems ==="
 mount --types proc /proc "${TARGET}/proc"
 mount --types sysfs /sys "${TARGET}/sys"
 mount --bind /dev "${TARGET}/dev"
 mount --bind /dev/pts "${TARGET}/dev/pts"
 
-echo "=== 3. Generating Mirror Sources (Resolute) ==="
+echo "=== 5. Generating Mirror Sources (Resolute) ==="
 cat <<EOF > "${TARGET}/etc/apt/sources.list"
 deb http://archive.ubuntu.com/ubuntu/ resolute main restricted universe multiverse
 deb http://archive.ubuntu.com/ubuntu/ resolute-updates main restricted universe multiverse
 deb http://archive.ubuntu.com/ubuntu/ resolute-security main restricted universe multiverse
 EOF
 
-echo "=== 4. Provisioning the Base System inside Chroot ==="
-# Write the secondary execution script directly into the chroot target
+echo "=== 6. Provisioning the Base System inside Chroot ==="
 cat << 'CHROOT_EOF' > "${TARGET}/tmp/chroot_setup.sh"
 #!/usr/bin/env bash
 set -e
@@ -60,7 +66,7 @@ chroot "${TARGET}" /tmp/chroot_setup.sh
 # Cleanup the script from the target environment
 rm -f "${TARGET}/tmp/chroot_setup.sh"
 
-echo "=== 5. Detaching Virtual Mounts and Syncing ==="
+echo "=== 7. Detaching Virtual Mounts and Syncing ==="
 sync
 
 # Clean unmount loops with lazy fallback for stubborn locks
