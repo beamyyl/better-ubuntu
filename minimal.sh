@@ -7,8 +7,9 @@ echo "=== 1. Ensuring Mount Points Exist ==="
 mkdir -p "${TARGET}"
 
 echo "=== 2. Running Debootstrap (Resolute Minbase) ==="
-apt install debootstrap
-debootstrap --variant=minbase resolute "${TARGET}" http://archive.ubuntu.com/ubuntu/
+apt install -y debootstrap
+# Added --no-check-gpg to bypass the unsigned release file error for development branches
+debootstrap --no-check-gpg --variant=minbase resolute "${TARGET}" http://archive.ubuntu.com/ubuntu/
 
 echo "=== 3. Creating Virtual FS Mounts ==="
 mkdir -p "${TARGET}"/{proc,sys,dev,boot/efi,tmp}
