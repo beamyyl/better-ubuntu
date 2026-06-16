@@ -199,7 +199,7 @@ echo "--> Provisioning users and system credentials..."
 echo "root:$ROOT_PASS" | chpasswd
 
 # Setup primary user account
-useradd -m -s /bin/bash -G sudo,plugdev,netdev "$NEW_USER"
+useradd -m -s /bin/bash -G sudo,plugdev,netdev,audio,video,input "$NEW_USER"
 echo "$NEW_USER:$NEW_USER_PASS" | chpasswd
 
 CHROOT_EOF
