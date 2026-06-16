@@ -4,14 +4,12 @@ set -e
 # --- Configuration ---
 RELEASE="${1:-resolute}"
 TARGET="/mnt"
-HOSTNAME="ubuntu-minimal"
-MIRROR="http://ro.archive.ubuntu.com/ubuntu/"
+HOSTNAME="ubuntu"
 
 echo "=========================================================="
 echo " Starting De-snapped Ubuntu ($RELEASE) Installation "
 echo "=========================================================="
 
-# 1. Sanity checks for pre-existing mountpoints
 if ! mountpoint -q "$TARGET"; then
     echo "ERROR: $TARGET is not a target mountpoint. Please mount your root partition."
     exit 1
@@ -21,18 +19,34 @@ if ! mountpoint -q "$TARGET/boot/efi"; then
     exit 1
 fi
 
-# 2. Ensure debootstrap is installed on the host environment
+# 2. Dynamic Mirror Extraction (Pulls the live ISO's operational mirror)
+echo "--> Detecting host environment package mirror..."
+if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+    MIRROR=$(awk '/^URIs:/ {print $2; exit}' /etc/apt/sources.list.d/ubuntu.sources)
+elif [ -f /etc/apt/sources.list ]; then
+    MIRROR=$(awk '/^deb / {print $2; exit}' /etc/apt/sources.list)
+fi
+
+# Fallback block if files are unreadable or complex
+if [ -z "$MIRROR" ]; then
+    MIRROR="http://archive.ubuntu.com/ubuntu/"
+    echo "    (!) Mirror auto-detection inconclusive. Falling back to default: $MIRROR"
+else
+    echo "    Detected target mirror: $MIRROR"
+fi
+
+# 3. Ensure debootstrap is installed on the host environment
 if ! command -v debootstrap &> /dev/null; then
     echo "--> debootstrap not found. Installing on live environment..."
     apt-get update
     apt-get install -y debootstrap
 fi
 
-# 3. Securely bootstrap the core system with full GPG validation
+# 4. Securely bootstrap the core system with full GPG validation
 echo "--> Bootstrapping base system via debootstrap..."
 debootstrap --arch=amd64 --keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg "$RELEASE" "$TARGET" "$MIRROR"
 
-# 4. Dynamically capture block device UUIDs to populate fstab
+# 5. Dynamically capture block device UUIDs to populate fstab
 echo "--> Generating /etc/fstab configuration..."
 ROOT_UUID=$(blkid -s UUID -o value $(findmnt -n -o SOURCE --target "$TARGET"))
 EFI_UUID=$(blkid -s UUID -o value $(findmnt -n -o SOURCE --target "$TARGET/boot/efi"))
@@ -43,7 +57,7 @@ UUID=$ROOT_UUID / ext4 errors=remount-ro 0 1
 UUID=$EFI_UUID /boot/efi vfat umask=0077 0 2
 FSTAB
 
-# 5. Configure foundational network assets
+# 6. Configure foundational network assets
 echo "$HOSTNAME" > "$TARGET/etc/hostname"
 cat << HOSTS > "$TARGET/etc/hosts"
 127.0.0.1   localhost
@@ -54,13 +68,13 @@ ff02::1     ip6-allnodes
 ff02::2     ip6-allrouters
 HOSTS
 
-# 6. Bind mount virtual filesystems into target structure
+# 7. Bind mount virtual filesystems into target structure
 echo "--> Mounting API virtual filesystems..."
 for dir in /dev /dev/pts /proc /sys /run; do
     mount --bind "$dir" "$TARGET$dir"
 done
 
-# 7. Execute core deployment inside the isolated chroot
+# 8. Execute core deployment inside the isolated chroot
 echo "--> Shifting context to target environment..."
 chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" << 'CHROOT_EOF'
 set -e
@@ -68,7 +82,7 @@ TARGET_RELEASE="$1"
 TARGET_MIRROR="$2"
 
 echo "--> Initializing package manager and architecture layers..."
-# Write out modern deb822 source sheets
+# Write out modern deb822 source sheets using the parsed mirror
 cat << SOURCES > /etc/apt/sources.list.d/ubuntu.sources
 Types: deb
 URIs: $TARGET_MIRROR
@@ -157,7 +171,7 @@ passwd "$username"
 
 CHROOT_EOF
 
-# 8. Safe teardown of working namespaces
+# 9. Safe teardown of working namespaces
 echo "--> Tear down external bind structures..."
 for dir in /run /sys /proc /dev/pts /dev; do
     umount "$TARGET$dir" || true
