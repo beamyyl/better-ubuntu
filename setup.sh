@@ -22,9 +22,13 @@ Package: *
 Pin: release o=LP-PPA-xtradeb-apps
 Pin-Priority: 1001
 
-Package: firefox*
+Package: firefox* thunderbird*
 Pin: release o=LP-PPA-mozillateam
 Pin-Priority: 1002
+
+Package: thunderbird
+Pin: version 2:1snap*
+Pin-Priority: -1
 
 Package: firefox*
 Pin: release o=Ubuntu*
@@ -41,6 +45,8 @@ path-exclude=/usr/lib/firefox/distribution/*
 path-exclude=/etc/chromium/*
 path-exclude=/etc/chromium-browser/*
 EOF
+
+echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' | sudo tee /etc/apt/apt.conf.d/51unattended-upgrades-thunderbird
 
 sudo apt update
 sudo apt upgrade -y
