@@ -127,9 +127,13 @@ Package: *
 Pin: release o=LP-PPA-xtradeb-apps
 Pin-Priority: 1001
 
-Package: firefox*
+Package: firefox* thunderbird*
 Pin: release o=LP-PPA-mozillateam
 Pin-Priority: 1002
+
+Package: thunderbird
+Pin: version 2:1snap*
+Pin-Priority: -1
 
 Package: firefox*
 Pin: release o=Ubuntu*
@@ -146,6 +150,8 @@ path-exclude=/usr/lib/firefox/distribution/*
 path-exclude=/etc/chromium/*
 path-exclude=/etc/chromium-browser/*
 EOF
+
+echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' | tee /etc/apt/apt.conf.d/51unattended-upgrades-thunderbird
 
 apt-get update
 
@@ -164,7 +170,7 @@ systemctl enable NetworkManager gdm
 apt-get install -y flatpak gnome-software-plugin-flatpak
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-apt-get install -y firefox bash
+apt-get install -y firefox thunderbird bash
 
 apt-get purge -y snapd || true
 rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd /usr/lib/snapd
