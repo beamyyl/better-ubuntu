@@ -15,7 +15,6 @@ ask()   { echo -e "${CYAN}[INPUT]${NC} $*"; }
 # Configuration
 RELEASE="${1:-resolute}"
 TARGET="/mnt"
-HOSTNAME="ubuntu"
 
 # =============================================================================
 # Sanity checks
@@ -45,6 +44,17 @@ else
 fi
 
 # =============================================================================
+# User Input (Hostname & Desktop)
+# =============================================================================
+ask "Enter desired hostname for the new system:"
+read -rp "  Hostname [ubuntu]: " HOSTNAME
+HOSTNAME="${HOSTNAME:-ubuntu}"
+
+ask "Install GNOME Desktop (ubuntu-desktop-minimal)? [y/N]:"
+read -rp "  Choice: " DESKTOP_CHOICE
+[[ "$DESKTOP_CHOICE" =~ ^[Yy]$ ]] && INSTALL_DESKTOP="true" || INSTALL_DESKTOP="false"
+
+# =============================================================================
 # Environment Setup
 # =============================================================================
 info "Detecting host environment package mirror..."
@@ -62,7 +72,7 @@ else
 fi
 
 # =============================================================================
-# User Input
+# User Credentials
 # =============================================================================
 ask "Enter desired username for the new user:"
 read -rp "  Username: " username
@@ -131,7 +141,7 @@ done
 # =============================================================================
 # Chroot execution
 # =============================================================================
-chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" << 'CHROOT_EOF'
+chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" << 'CHROOT_EOF'
 set -e
 TARGET_RELEASE="$1"
 TARGET_MIRROR="$2"
@@ -140,6 +150,7 @@ NEW_USER_PASS="$4"
 ROOT_PASS="$5"
 BOOT_MODE="$6"
 GRUB_DISK="$7"
+INSTALL_DESKTOP="$8"
 
 echo "--> Initializing package manager and architecture layers..."
 cat << SOURCES > /etc/apt/sources.list.d/ubuntu.sources
@@ -199,13 +210,18 @@ add-apt-repository -y ppa:mozillateam/ppa
 apt-get update
 
 echo "--> Pulling base kernel, boot management, and network stuff"
-apt-get install -y linux-image-generic grub-efi-amd64 network-manager ubuntu-desktop-minimal
-systemctl enable NetworkManager gdm
+apt-get install -y linux-image-generic grub-efi-amd64 network-manager
+apt-get install -y --no-install-recommends bash
 
-apt-get install -y flatpak gnome-software-plugin-flatpak
-flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-
-apt-get install -y firefox thunderbird bash
+if [ "$INSTALL_DESKTOP" = "true" ]; then
+    apt-get install -y ubuntu-desktop-minimal
+    systemctl enable NetworkManager gdm
+    apt-get install -y flatpak gnome-software-plugin-flatpak
+    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    apt-get install -y firefox thunderbird
+else
+    systemctl enable NetworkManager
+fi
 
 apt-get purge -y snapd || true
 rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd /usr/lib/snapd
