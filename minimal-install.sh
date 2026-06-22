@@ -211,7 +211,7 @@ apt-get update
 
 echo "--> Pulling base kernel, boot management, and network stuff"
 apt-get install -y linux-image-generic grub-efi-amd64 network-manager
-apt-get install -y --no-install-recommends bash
+apt-get install -y bash
 
 if [ "$INSTALL_DESKTOP" = "true" ]; then
     apt-get install -y ubuntu-desktop-minimal
