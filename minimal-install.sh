@@ -218,7 +218,7 @@ if [ "$INSTALL_DESKTOP" = "true" ]; then
     systemctl enable NetworkManager gdm
     apt-get install -y flatpak gnome-software-plugin-flatpak
     flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-    apt-get install -y firefox thunderbird
+    apt-get install -y firefox
 else
     systemctl enable NetworkManager
 fi
