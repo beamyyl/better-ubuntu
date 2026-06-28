@@ -22,6 +22,8 @@ TARGET="/mnt"
 if ! mountpoint -q "$TARGET"; then
     die "$TARGET is not a target mountpoint. Please mount your root partition."
 fi
+echo 'The default release is Resolute. If you want to install another release, run the script like this: "./minimal-install.sh noble"'
+sleep 1
 
 # =============================================================================
 # Boot mode selection
