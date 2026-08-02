@@ -64,9 +64,7 @@ if command -v pacman &> /dev/null; then
     info "Detected Arch Linux host environment."
     if ! command -v debootstrap &> /dev/null; then
         info "Installing debootstrap via pacman..."
-        pacman -Sy --noconfirm debootstrap arch-install-scripts
-    elif ! command -v arch-chroot &> /dev/null; then
-        pacman -Sy --noconfirm arch-install-scripts
+        pacman -Sy --noconfirm --needed arch-install-scripts debootstrap
     fi
     MIRROR="http://archive.ubuntu.com/ubuntu/"
 elif command -v apt-get &> /dev/null; then
@@ -363,7 +361,7 @@ else
     apt install grub-pc -y
     sudo grub-install --target=i386-pc "$GRUB_DISK"
 fi
-sudo update-grub
+update-grub
 
 echo "--> Provisioning users and system credentials..."
 echo "root:$ROOT_PASS" | chpasswd
