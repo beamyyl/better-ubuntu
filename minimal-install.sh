@@ -230,12 +230,12 @@ rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd /usr/lib/snapd
 
 echo "--> Configuring boot entries..."
 if [ "$BOOT_MODE" = "uefi" ]; then
-    grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=Ubuntu --recheck
+    sudo grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=Ubuntu --recheck
 else
     apt install grub-pc -y
-    grub-install --target=i386-pc "$GRUB_DISK"
+    sudo grub-install --target=i386-pc "$GRUB_DISK"
 fi
-update-grub
+sudo update-grub
 
 echo "--> Provisioning users and system credentials..."
 echo "root:$ROOT_PASS" | chpasswd
