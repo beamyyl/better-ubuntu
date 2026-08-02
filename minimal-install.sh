@@ -60,11 +60,12 @@ read -rp "  Choice: " DESKTOP_CHOICE
 # Environment Setup
 # =============================================================================
 info "Detecting host environment package mirror..."
-if command -v pacman &> /dev/null; then
+if command -v arch-chroot &> /dev/null; then
     info "Detected Arch Linux host environment."
     if ! command -v debootstrap &> /dev/null; then
         info "Installing debootstrap via pacman..."
-        pacman -Sy --noconfirm --needed arch-install-scripts debootstrap
+# delete the next line if you are on another distro, but have arch-chroot and debootstrap already installed.
+        pacman -Sy --noconfirm --needed debootstrap
     fi
     MIRROR="http://archive.ubuntu.com/ubuntu/"
 elif command -v apt-get &> /dev/null; then
@@ -122,7 +123,7 @@ echo ""
 # Installation
 # =============================================================================
 info "Bootstrapping base system via debootstrap"
-if command -v pacman &> /dev/null; then
+if command -v arch-chroot &> /dev/null; then
     debootstrap --arch=amd64 "$RELEASE" "$TARGET" "$MIRROR"
 else
     debootstrap --arch=amd64 --keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg "$RELEASE" "$TARGET" "$MIRROR"
