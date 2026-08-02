@@ -160,6 +160,7 @@ if command -v arch-chroot &> /dev/null; then
     fi
     
     arch-chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" << 'CHROOT_EOF'
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 set -e
 TARGET_RELEASE="$1"
 TARGET_MIRROR="$2"
@@ -269,6 +270,7 @@ else
     done
 
     chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" << 'CHROOT_EOF'
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 set -e
 TARGET_RELEASE="$1"
 TARGET_MIRROR="$2"
@@ -356,10 +358,10 @@ rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd /usr/lib/snapd
 
 echo "--> Configuring boot entries..."
 if [ "$BOOT_MODE" = "uefi" ]; then
-    sudo grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=Ubuntu --recheck
+    grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=Ubuntu --recheck
 else
     apt install grub-pc -y
-    sudo grub-install --target=i386-pc "$GRUB_DISK"
+    grub-install --target=i386-pc "$GRUB_DISK"
 fi
 update-grub
 
@@ -367,7 +369,7 @@ echo "--> Provisioning users and system credentials..."
 echo "root:$ROOT_PASS" | chpasswd
 chsh -s /bin/bash root
 
-sudo useradd -m -s /bin/bash -G sudo,plugdev,netdev,audio,video,input "$NEW_USER"
+useradd -m -s /bin/bash -G sudo,plugdev,netdev,audio,video,input "$NEW_USER"
 echo "$NEW_USER:$NEW_USER_PASS" | chpasswd
 CHROOT_EOF
 
