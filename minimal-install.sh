@@ -60,17 +60,36 @@ read -rp "  Choice: " DESKTOP_CHOICE
 # Environment Setup
 # =============================================================================
 info "Detecting host environment package mirror..."
-if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
-    MIRROR=$(awk '/^URIs:/ {print $2; exit}' /etc/apt/sources.list.d/ubuntu.sources)
-elif [ -f /etc/apt/sources.list ]; then
-    MIRROR=$(awk '/^deb / {print $2; exit}' /etc/apt/sources.list)
-fi
-
-if [ -z "$MIRROR" ]; then
+if command -v pacman &> /dev/null; then
+    info "Detected Arch Linux host environment."
+    if ! command -v debootstrap &> /dev/null; then
+        info "Installing debootstrap via pacman..."
+        pacman -Sy --noconfirm debootstrap arch-install-scripts
+    elif ! command -v arch-chroot &> /dev/null; then
+        pacman -Sy --noconfirm arch-install-scripts
+    fi
     MIRROR="http://archive.ubuntu.com/ubuntu/"
-    warn "Mirror auto-detection inconclusive. Falling back to default: $MIRROR"
+elif command -v apt-get &> /dev/null; then
+    if ! command -v debootstrap &> /dev/null; then
+        info "debootstrap not found. Installing on live environment"
+        apt-get update
+        apt-get install -y debootstrap
+    fi
+
+    if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+        MIRROR=$(awk '/^URIs:/ {print $2; exit}' /etc/apt/sources.list.d/ubuntu.sources)
+    elif [ -f /etc/apt/sources.list ]; then
+        MIRROR=$(awk '/^deb / {print $2; exit}' /etc/apt/sources.list)
+    fi
+
+    if [ -z "$MIRROR" ]; then
+        MIRROR="http://archive.ubuntu.com/ubuntu/"
+        warn "Mirror auto-detection inconclusive. Falling back to default: $MIRROR"
+    else
+        info "Detected target mirror: $MIRROR"
+    fi
 else
-    info "Detected target mirror: $MIRROR"
+    die "Unsupported host distribution. This script requires an Ubuntu/Debian or Arch Linux live environment."
 fi
 
 # =============================================================================
@@ -101,17 +120,15 @@ if [ "$root_password" != "$root_password_confirm" ]; then
 fi
 echo ""
 
-if ! command -v debootstrap &> /dev/null; then
-    info "debootstrap not found. Installing on live environment"
-    apt-get update
-    apt-get install -y debootstrap
-fi
-
 # =============================================================================
 # Installation
 # =============================================================================
 info "Bootstrapping base system via debootstrap"
-debootstrap --arch=amd64 --keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg "$RELEASE" "$TARGET" "$MIRROR"
+if command -v pacman &> /dev/null; then
+    debootstrap --arch=amd64 "$RELEASE" "$TARGET" "$MIRROR"
+else
+    debootstrap --arch=amd64 --keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg "$RELEASE" "$TARGET" "$MIRROR"
+fi
 
 info "Generating /etc/fstab configuration"
 ROOT_UUID=$(blkid -s UUID -o value $(findmnt -n -o SOURCE --target "$TARGET"))
@@ -135,15 +152,16 @@ ff02::1     ip6-allnodes
 ff02::2     ip6-allrouters
 HOSTS
 
-info "Mounting API virtual filesystems"
-for dir in /dev /dev/pts /proc /sys /run; do
-    mount --bind "$dir" "$TARGET$dir"
-done
-
 # =============================================================================
 # Chroot execution
 # =============================================================================
-chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" << 'CHROOT_EOF'
+if command -v arch-chroot &> /dev/null; then
+    info "Using arch-chroot environment execution..."
+    if ! mountpoint -q "$TARGET"; then
+        mount --bind "$TARGET" "$TARGET"
+    fi
+    
+    arch-chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" << 'CHROOT_EOF'
 set -e
 TARGET_RELEASE="$1"
 TARGET_MIRROR="$2"
@@ -155,6 +173,116 @@ GRUB_DISK="$7"
 INSTALL_DESKTOP="$8"
 
 echo "--> Initializing package manager and architecture layers..."
+rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list
+cat << SOURCES > /etc/apt/sources.list.d/ubuntu.sources
+Types: deb
+URIs: $TARGET_MIRROR
+Suites: $TARGET_RELEASE $TARGET_RELEASE-updates $TARGET_RELEASE-backports
+Components: main universe multiverse restricted
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+Types: deb
+URIs: http://security.ubuntu.com/ubuntu/
+Suites: $TARGET_RELEASE-security
+Components: main universe multiverse restricted
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+SOURCES
+
+dpkg --add-architecture i386
+
+echo "--> Implementing anti-snap APT constraints..."
+mkdir -p /etc/apt/preferences.d
+cat << 'EOF' > /etc/apt/preferences.d/xtradeb-no-snap
+Package: *
+Pin: release o=LP-PPA-xtradeb-apps
+Pin-Priority: 1001
+
+Package: firefox* thunderbird*
+Pin: release o=LP-PPA-mozillateam
+Pin-Priority: 1002
+
+Package: thunderbird
+Pin: version 2:1snap*
+Pin-Priority: -1
+
+Package: firefox*
+Pin: release o=Ubuntu*
+Pin-Priority: -1
+
+Package: snapd
+Pin: release a=*
+Pin-Priority: -10
+EOF
+
+mkdir -p /etc/dpkg/dpkg.cfg.d
+cat << 'EOF' > /etc/dpkg/dpkg.cfg.d/block-browser-branding
+path-exclude=/usr/lib/firefox/distribution/*
+path-exclude=/etc/chromium/*
+path-exclude=/etc/chromium-browser/*
+EOF
+
+echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' | tee /etc/apt/apt.conf.d/51unattended-upgrades-thunderbird
+
+apt-get update
+apt-get install -y software-properties-common gnupg
+
+add-apt-repository -y ppa:xtradeb/apps
+add-apt-repository -y ppa:mozillateam/ppa
+apt-get update
+
+echo "--> Pulling base kernel, boot management, and network stuff"
+apt-get install -y linux-image-generic grub-efi-amd64 network-manager
+apt-get install -y bash
+
+if [ "$INSTALL_DESKTOP" = "true" ]; then
+    apt-get install -y ubuntu-desktop-minimal
+    systemctl enable NetworkManager gdm
+    apt-get install -y flatpak gnome-software-plugin-flatpak
+    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    apt-get install -y firefox
+else
+    systemctl enable NetworkManager
+fi
+
+apt-get purge -y snapd || true
+rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd /usr/lib/snapd
+
+echo "--> Configuring boot entries..."
+if [ "$BOOT_MODE" = "uefi" ]; then
+    grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=Ubuntu --recheck
+else
+    apt install grub-pc -y
+    grub-install --target=i386-pc "$GRUB_DISK"
+fi
+update-grub
+
+echo "--> Provisioning users and system credentials..."
+echo "root:$ROOT_PASS" | chpasswd
+chsh -s /bin/bash root
+
+useradd -m -s /bin/bash -G sudo,plugdev,netdev,audio,video,input "$NEW_USER"
+echo "$NEW_USER:$NEW_USER_PASS" | chpasswd
+CHROOT_EOF
+
+else
+    info "Mounting API virtual filesystems"
+    for dir in /dev /dev/pts /proc /sys /run; do
+        mount --bind "$dir" "$TARGET$dir"
+    done
+
+    chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" << 'CHROOT_EOF'
+set -e
+TARGET_RELEASE="$1"
+TARGET_MIRROR="$2"
+NEW_USER="$3"
+NEW_USER_PASS="$4"
+ROOT_PASS="$5"
+BOOT_MODE="$6"
+GRUB_DISK="$7"
+INSTALL_DESKTOP="$8"
+
+echo "--> Initializing package manager and architecture layers..."
+rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list
 cat << SOURCES > /etc/apt/sources.list.d/ubuntu.sources
 Types: deb
 URIs: $TARGET_MIRROR
@@ -245,13 +373,14 @@ sudo useradd -m -s /bin/bash -G sudo,plugdev,netdev,audio,video,input "$NEW_USER
 echo "$NEW_USER:$NEW_USER_PASS" | chpasswd
 CHROOT_EOF
 
-# =============================================================================
-# Cleanup
-# =============================================================================
-info "Tear down external bind structures..."
-for dir in /run /sys /proc /dev/pts /dev; do
-    umount "$TARGET$dir" || true
-done
+    # =============================================================================
+    # Cleanup
+    # =============================================================================
+    info "Tear down external bind structures..."
+    for dir in /run /sys /proc /dev/pts /dev; do
+        umount "$TARGET$dir" || true
+    done
+fi
 
 echo "=========================================================="
 echo " Done! You can now reboot your system."
