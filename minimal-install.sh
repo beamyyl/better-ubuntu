@@ -64,7 +64,7 @@ if command -v arch-chroot &> /dev/null; then
     info "Detected Arch Linux host environment."
     if ! command -v debootstrap &> /dev/null; then
         info "Installing debootstrap via pacman..."
-# delete the next line if you are on another distro, but have arch-chroot and debootstrap already installed.
+# delete the next line if you are on another distro, but install debootstrap manually before continuing.
         pacman -Sy --noconfirm --needed debootstrap
     fi
     MIRROR="http://archive.ubuntu.com/ubuntu/"
@@ -235,7 +235,7 @@ apt-get install -y linux-image-generic grub-efi-amd64 network-manager
 apt-get install -y bash
 
 if [ "$INSTALL_DESKTOP" = "true" ]; then
-    apt-get install -y ubuntu-desktop-minimal
+    apt-get install -y ubuntu-desktop-minimal wl-clipboard
     systemctl enable NetworkManager gdm
     apt-get install -y flatpak gnome-software-plugin-flatpak
     flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
