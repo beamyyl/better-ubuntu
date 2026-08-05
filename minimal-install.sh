@@ -209,7 +209,7 @@ Package: firefox*
 Pin: release o=Ubuntu*
 Pin-Priority: -1
 
-Package: snapd
+Package: snap*
 Pin: release a=*
 Pin-Priority: -10
 EOF
