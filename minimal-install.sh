@@ -338,6 +338,7 @@ apt-get install -y software-properties-common gnupg
 
 add-apt-repository -y ppa:xtradeb/apps
 add-apt-repository -y ppa:mozillateam/ppa
+echo 'APT::Get::Always-Include-Phased-Updates "true";' | sudo tee /etc/apt/apt.conf.d/99bypass-phasing
 apt-get update
 
 echo "--> Pulling base kernel, boot management, and network stuff"
