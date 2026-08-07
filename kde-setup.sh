@@ -4,7 +4,7 @@ sudo apt install kde-plasma-desktop plasma-session-x11 sddm-theme-breeze breeze-
 sudo dpkg-reconfigure sddm
 sudo mkdir -p /etc/sddm.conf.d
 if [ -f /etc/sddm.conf.d/50-ubuntu-budgie.conf ]; then
-    sudo mv /etc/sddm.conf.d/50-ubuntu-budgie.conf /etc/sddm.conf.d/50-ubuntu-budgie.bak
+    sudo rm /etc/sddm.conf.d/50-ubuntu-budgie.conf
 fi
 echo -e "[Theme]\nCurrent=breeze" | sudo tee /etc/sddm.conf.d/kde_settings.conf
 sudo apt purge light-locker -y
