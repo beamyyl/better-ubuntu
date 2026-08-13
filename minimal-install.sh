@@ -9,7 +9,7 @@ set -e
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
 info()  { echo -e "${GREEN}[INFO]${NC}  $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
-die()   { echo -e "${RED}[FAIL]${NC}  $*"; exit 1; }
+die()   { echo -e "${RED}[FAIL]${NC}  $*; exit 1; }
 ask()   { echo -e "${CYAN}[INPUT]${NC} $*"; }
 
 # Configuration
@@ -46,6 +46,22 @@ else
 fi
 
 # =============================================================================
+# Snap Preference Selection
+# =============================================================================
+ask "Do you want to include Snap packages or remove/block them entirely?"
+ask "  1) Without Snap"
+ask "  2) With Snap (default on Ubuntu)"
+read -rp "  Choice [1/2]: " SNAP_CHOICE
+
+if [ "$SNAP_CHOICE" = "1" ]; then
+    WITH_SNAP="false"
+    info "Snap will be blocked and purged from the system."
+else
+    WITH_SNAP="true"
+    info "Snap will be left enabled."
+fi
+
+# =============================================================================
 # User Input (Hostname & Desktop)
 # =============================================================================
 ask "Enter desired hostname for the new system:"
@@ -64,7 +80,6 @@ if command -v arch-chroot &> /dev/null; then
     info "Detected Arch Linux host environment."
     if ! command -v debootstrap &> /dev/null; then
         info "Installing debootstrap via pacman..."
-# delete the next line if you are on another distro, but install debootstrap manually before continuing.
         pacman -Sy --noconfirm --needed debootstrap
     fi
     MIRROR="http://archive.ubuntu.com/ubuntu/"
@@ -160,7 +175,7 @@ if command -v arch-chroot &> /dev/null; then
         mount --bind "$TARGET" "$TARGET"
     fi
     
-    arch-chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" << 'CHROOT_EOF'
+    arch-chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" "$WITH_SNAP" << 'CHROOT_EOF'
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 set -e
 TARGET_RELEASE="$1"
@@ -171,6 +186,7 @@ ROOT_PASS="$5"
 BOOT_MODE="$6"
 GRUB_DISK="$7"
 INSTALL_DESKTOP="$8"
+WITH_SNAP="$9"
 
 echo "--> Initializing package manager and architecture layers..."
 rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list
@@ -190,9 +206,10 @@ SOURCES
 
 dpkg --add-architecture i386
 
-echo "--> Implementing anti-snap APT constraints..."
-mkdir -p /etc/apt/preferences.d
-cat << 'EOF' > /etc/apt/preferences.d/xtradeb-no-snap
+if [ "$WITH_SNAP" = "false" ]; then
+    echo "--> Implementing anti-snap APT constraints..."
+    mkdir -p /etc/apt/preferences.d
+    cat << 'EOF' > /etc/apt/preferences.d/xtradeb-no-snap
 Package: *
 Pin: release o=LP-PPA-xtradeb-apps
 Pin-Priority: 1001
@@ -214,21 +231,24 @@ Pin: release a=*
 Pin-Priority: -10
 EOF
 
-mkdir -p /etc/dpkg/dpkg.cfg.d
-cat << 'EOF' > /etc/dpkg/dpkg.cfg.d/block-browser-branding
+    mkdir -p /etc/dpkg/dpkg.cfg.d
+    cat << 'EOF' > /etc/dpkg/dpkg.cfg.d/block-browser-branding
 path-exclude=/usr/lib/firefox/distribution/*
 path-exclude=/etc/chromium/*
 path-exclude=/etc/chromium-browser/*
 EOF
 
-echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' | tee /etc/apt/apt.conf.d/51unattended-upgrades-thunderbird
+    echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' | tee /etc/apt/apt.conf.d/51unattended-upgrades-thunderbird
+fi
 
 apt-get update
 apt-get install -y software-properties-common gnupg
 
-add-apt-repository -y ppa:xtradeb/apps
-add-apt-repository -y ppa:mozillateam/ppa
-apt-get update
+if [ "$WITH_SNAP" = "false" ]; then
+    add-apt-repository -y ppa:xtradeb/apps
+    add-apt-repository -y ppa:mozillateam/ppa
+    apt-get update
+fi
 
 echo "--> Pulling base kernel, boot management, and network stuff"
 apt-get install -y linux-image-generic grub-efi-amd64 network-manager
@@ -237,15 +257,19 @@ apt-get install -y bash
 if [ "$INSTALL_DESKTOP" = "true" ]; then
     apt-get install -y ubuntu-desktop-minimal wl-clipboard
     systemctl enable NetworkManager gdm
-    apt-get install -y flatpak gnome-software-plugin-flatpak
-    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-    apt-get install -y firefox
+    if [ "$WITH_SNAP" = "false" ]; then
+        apt-get install -y flatpak gnome-software-plugin-flatpak
+        flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+        apt-get install -y firefox
+    fi
 else
     systemctl enable NetworkManager
 fi
 
-apt-get purge -y snapd || true
-rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd /usr/lib/snapd
+if [ "$WITH_SNAP" = "false" ]; then
+    apt-get purge -y snapd || true
+    rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd /usr/lib/snapd
+fi
 
 echo "--> Configuring boot entries..."
 if [ "$BOOT_MODE" = "uefi" ]; then
@@ -270,7 +294,7 @@ else
         mount --bind "$dir" "$TARGET$dir"
     done
 
-    chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" << 'CHROOT_EOF'
+    chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" "$WITH_SNAP" << 'CHROOT_EOF'
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 set -e
 TARGET_RELEASE="$1"
@@ -281,6 +305,7 @@ ROOT_PASS="$5"
 BOOT_MODE="$6"
 GRUB_DISK="$7"
 INSTALL_DESKTOP="$8"
+WITH_SNAP="$9"
 
 echo "--> Initializing package manager and architecture layers..."
 rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list
@@ -300,9 +325,10 @@ SOURCES
 
 dpkg --add-architecture i386
 
-echo "--> Implementing anti-snap APT constraints..."
-mkdir -p /etc/apt/preferences.d
-cat << 'EOF' > /etc/apt/preferences.d/xtradeb-no-snap
+if [ "$WITH_SNAP" = "false" ]; then
+    echo "--> Implementing anti-snap APT constraints..."
+    mkdir -p /etc/apt/preferences.d
+    cat << 'EOF' > /etc/apt/preferences.d/xtradeb-no-snap
 Package: *
 Pin: release o=LP-PPA-xtradeb-apps
 Pin-Priority: 1001
@@ -324,22 +350,25 @@ Pin: release a=*
 Pin-Priority: -10
 EOF
 
-mkdir -p /etc/dpkg/dpkg.cfg.d
-cat << 'EOF' > /etc/dpkg/dpkg.cfg.d/block-browser-branding
+    mkdir -p /etc/dpkg/dpkg.cfg.d
+    cat << 'EOF' > /etc/dpkg/dpkg.cfg.d/block-browser-branding
 path-exclude=/usr/lib/firefox/distribution/*
 path-exclude=/etc/chromium/*
 path-exclude=/etc/chromium-browser/*
 EOF
 
-echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' | tee /etc/apt/apt.conf.d/51unattended-upgrades-thunderbird
+    echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' | tee /etc/apt/apt.conf.d/51unattended-upgrades-thunderbird
+fi
 
 apt-get update
 apt-get install -y software-properties-common gnupg
 
-add-apt-repository -y ppa:xtradeb/apps
-add-apt-repository -y ppa:mozillateam/ppa
-echo 'APT::Get::Always-Include-Phased-Updates "true";' | sudo tee /etc/apt/apt.conf.d/99bypass-phasing
-apt-get update
+if [ "$WITH_SNAP" = "false" ]; then
+    add-apt-repository -y ppa:xtradeb/apps
+    add-apt-repository -y ppa:mozillateam/ppa
+    echo 'APT::Get::Always-Include-Phased-Updates "true";' | sudo tee /etc/apt/apt.conf.d/99bypass-phasing
+    apt-get update
+fi
 
 echo "--> Pulling base kernel, boot management, and network stuff"
 apt-get install -y linux-image-generic grub-efi-amd64 network-manager
@@ -348,15 +377,19 @@ apt-get install -y bash
 if [ "$INSTALL_DESKTOP" = "true" ]; then
     apt-get install -y ubuntu-desktop-minimal
     systemctl enable NetworkManager gdm
-    apt-get install -y flatpak gnome-software-plugin-flatpak
-    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-    apt-get install -y firefox
+    if [ "$WITH_SNAP" = "false" ]; then
+        apt-get install -y flatpak gnome-software-plugin-flatpak
+        flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+        apt-get install -y firefox
+    fi
 else
     systemctl enable NetworkManager
 fi
 
-apt-get purge -y snapd || true
-rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd /usr/lib/snapd
+if [ "$WITH_SNAP" = "false" ]; then
+    apt-get purge -y snapd || true
+    rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd /usr/lib/snapd
+fi
 
 echo "--> Configuring boot entries..."
 if [ "$BOOT_MODE" = "uefi" ]; then
