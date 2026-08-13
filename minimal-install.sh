@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # =============================================================================
 # De-snapped Ubuntu Install Script
 # Supports: UEFI or BIOS
@@ -9,7 +10,7 @@ set -e
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
 info()  { echo -e "${GREEN}[INFO]${NC}  $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
-die()   { echo -e "${RED}[FAIL]${NC}  $*; exit 1; }
+die()   { echo -e "${RED}[FAIL]${NC}  $*"; exit 1; }
 ask()   { echo -e "${CYAN}[INPUT]${NC} $*"; }
 
 # Configuration
@@ -22,6 +23,7 @@ TARGET="/mnt"
 if ! mountpoint -q "$TARGET"; then
     die "$TARGET is not a target mountpoint. Please mount your root partition."
 fi
+
 echo 'The default release is Resolute. If you want to install another release, run the script like this: "./minimal-install.sh noble"'
 sleep 1
 
@@ -35,13 +37,16 @@ read -rp "  Choice [1/2]: " BOOT_CHOICE
 
 if [ "$BOOT_CHOICE" = "1" ]; then
     BOOT_MODE="uefi"
+
     if ! mountpoint -q "$TARGET/boot/efi"; then
         die "$TARGET/boot/efi is not a target mountpoint. Please mount your EFI partition."
     fi
 else
     BOOT_MODE="bios"
+
     ask "Enter the disk to install GRUB to (e.g. /dev/sda):"
     read -rp "  Install disk: " GRUB_DISK
+
     [ -z "$GRUB_DISK" ] && die "Disk cannot be empty."
 fi
 
@@ -76,14 +81,21 @@ read -rp "  Choice: " DESKTOP_CHOICE
 # Environment Setup
 # =============================================================================
 info "Detecting host environment package mirror..."
+
 if command -v arch-chroot &> /dev/null; then
     info "Detected Arch Linux host environment."
+
     if ! command -v debootstrap &> /dev/null; then
         info "Installing debootstrap via pacman..."
+
+        # delete the next line if you are on another distro, but install debootstrap manually before continuing.
         pacman -Sy --noconfirm --needed debootstrap
     fi
+
     MIRROR="http://archive.ubuntu.com/ubuntu/"
+
 elif command -v apt-get &> /dev/null; then
+
     if ! command -v debootstrap &> /dev/null; then
         info "debootstrap not found. Installing on live environment"
         apt-get update
@@ -102,6 +114,7 @@ elif command -v apt-get &> /dev/null; then
     else
         info "Detected target mirror: $MIRROR"
     fi
+
 else
     die "Unsupported host distribution. This script requires an Ubuntu/Debian or Arch Linux live environment."
 fi
@@ -111,12 +124,14 @@ fi
 # =============================================================================
 ask "Enter desired username for the new user:"
 read -rp "  Username: " username
+
 while [ -z "$username" ]; do
     read -rp "  Username cannot be empty. Enter username: " username
 done
 
 read -s -rp "  Enter password for $username: " user_password
 echo ""
+
 read -s -rp "  Confirm password for $username: " user_password_confirm
 echo ""
 
@@ -126,18 +141,21 @@ fi
 
 read -s -rp "  Enter password for root account: " root_password
 echo ""
+
 read -s -rp "  Confirm password for root account: " root_password_confirm
 echo ""
 
 if [ "$root_password" != "$root_password_confirm" ]; then
     die "Root passwords do not match!"
 fi
+
 echo ""
 
 # =============================================================================
 # Installation
 # =============================================================================
 info "Bootstrapping base system via debootstrap"
+
 if command -v arch-chroot &> /dev/null; then
     debootstrap --arch=amd64 "$RELEASE" "$TARGET" "$MIRROR"
 else
@@ -145,6 +163,7 @@ else
 fi
 
 info "Generating /etc/fstab configuration"
+
 ROOT_UUID=$(blkid -s UUID -o value $(findmnt -n -o SOURCE --target "$TARGET"))
 
 cat << FSTAB > "$TARGET/etc/fstab"
@@ -157,6 +176,7 @@ if [ "$BOOT_MODE" = "uefi" ]; then
 fi
 
 echo "$HOSTNAME" > "$TARGET/etc/hostname"
+
 cat << HOSTS > "$TARGET/etc/hosts"
 127.0.0.1   localhost
 127.1.1.1   $HOSTNAME
@@ -170,14 +190,18 @@ HOSTS
 # Chroot execution
 # =============================================================================
 if command -v arch-chroot &> /dev/null; then
+
     info "Using arch-chroot environment execution..."
+
     if ! mountpoint -q "$TARGET"; then
         mount --bind "$TARGET" "$TARGET"
     fi
-    
+
     arch-chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" "$WITH_SNAP" << 'CHROOT_EOF'
+
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 set -e
+
 TARGET_RELEASE="$1"
 TARGET_MIRROR="$2"
 NEW_USER="$3"
@@ -189,7 +213,9 @@ INSTALL_DESKTOP="$8"
 WITH_SNAP="$9"
 
 echo "--> Initializing package manager and architecture layers..."
+
 rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list
+
 cat << SOURCES > /etc/apt/sources.list.d/ubuntu.sources
 Types: deb
 URIs: $TARGET_MIRROR
@@ -208,7 +234,9 @@ dpkg --add-architecture i386
 
 if [ "$WITH_SNAP" = "false" ]; then
     echo "--> Implementing anti-snap APT constraints..."
+
     mkdir -p /etc/apt/preferences.d
+
     cat << 'EOF' > /etc/apt/preferences.d/xtradeb-no-snap
 Package: *
 Pin: release o=LP-PPA-xtradeb-apps
@@ -232,6 +260,7 @@ Pin-Priority: -10
 EOF
 
     mkdir -p /etc/dpkg/dpkg.cfg.d
+
     cat << 'EOF' > /etc/dpkg/dpkg.cfg.d/block-browser-branding
 path-exclude=/usr/lib/firefox/distribution/*
 path-exclude=/etc/chromium/*
@@ -251,17 +280,30 @@ if [ "$WITH_SNAP" = "false" ]; then
 fi
 
 echo "--> Pulling base kernel, boot management, and network stuff"
-apt-get install -y linux-image-generic grub-efi-amd64 network-manager
+
+apt-get install -y linux-image-generic network-manager
 apt-get install -y bash
 
+if [ "$BOOT_MODE" = "uefi" ]; then
+    apt-get install -y grub-efi-amd64
+else
+    apt-get install -y grub-pc
+fi
+
 if [ "$INSTALL_DESKTOP" = "true" ]; then
+
     apt-get install -y ubuntu-desktop-minimal wl-clipboard
+
     systemctl enable NetworkManager gdm
+
     if [ "$WITH_SNAP" = "false" ]; then
         apt-get install -y flatpak gnome-software-plugin-flatpak
+
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
         apt-get install -y firefox
     fi
+
 else
     systemctl enable NetworkManager
 fi
@@ -272,31 +314,38 @@ if [ "$WITH_SNAP" = "false" ]; then
 fi
 
 echo "--> Configuring boot entries..."
+
 if [ "$BOOT_MODE" = "uefi" ]; then
     grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=Ubuntu --recheck
 else
-    apt install grub-pc -y
     grub-install --target=i386-pc "$GRUB_DISK"
 fi
+
 update-grub
 
 echo "--> Provisioning users and system credentials..."
+
 echo "root:$ROOT_PASS" | chpasswd
 chsh -s /bin/bash root
 
 useradd -m -s /bin/bash -G sudo,plugdev,netdev,audio,video,input "$NEW_USER"
 echo "$NEW_USER:$NEW_USER_PASS" | chpasswd
+
 CHROOT_EOF
 
 else
+
     info "Mounting API virtual filesystems"
+
     for dir in /dev /dev/pts /proc /sys /run; do
         mount --bind "$dir" "$TARGET$dir"
     done
 
     chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" "$WITH_SNAP" << 'CHROOT_EOF'
+
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 set -e
+
 TARGET_RELEASE="$1"
 TARGET_MIRROR="$2"
 NEW_USER="$3"
@@ -308,7 +357,9 @@ INSTALL_DESKTOP="$8"
 WITH_SNAP="$9"
 
 echo "--> Initializing package manager and architecture layers..."
+
 rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list
+
 cat << SOURCES > /etc/apt/sources.list.d/ubuntu.sources
 Types: deb
 URIs: $TARGET_MIRROR
@@ -327,7 +378,9 @@ dpkg --add-architecture i386
 
 if [ "$WITH_SNAP" = "false" ]; then
     echo "--> Implementing anti-snap APT constraints..."
+
     mkdir -p /etc/apt/preferences.d
+
     cat << 'EOF' > /etc/apt/preferences.d/xtradeb-no-snap
 Package: *
 Pin: release o=LP-PPA-xtradeb-apps
@@ -351,6 +404,7 @@ Pin-Priority: -10
 EOF
 
     mkdir -p /etc/dpkg/dpkg.cfg.d
+
     cat << 'EOF' > /etc/dpkg/dpkg.cfg.d/block-browser-branding
 path-exclude=/usr/lib/firefox/distribution/*
 path-exclude=/etc/chromium/*
@@ -366,22 +420,35 @@ apt-get install -y software-properties-common gnupg
 if [ "$WITH_SNAP" = "false" ]; then
     add-apt-repository -y ppa:xtradeb/apps
     add-apt-repository -y ppa:mozillateam/ppa
-    echo 'APT::Get::Always-Include-Phased-Updates "true";' | sudo tee /etc/apt/apt.conf.d/99bypass-phasing
+    echo 'APT::Get::Always-Include-Phased-Updates "true";' | tee /etc/apt/apt.conf.d/99bypass-phasing
     apt-get update
 fi
 
 echo "--> Pulling base kernel, boot management, and network stuff"
-apt-get install -y linux-image-generic grub-efi-amd64 network-manager
+
+apt-get install -y linux-image-generic network-manager
 apt-get install -y bash
 
+if [ "$BOOT_MODE" = "uefi" ]; then
+    apt-get install -y grub-efi-amd64
+else
+    apt-get install -y grub-pc
+fi
+
 if [ "$INSTALL_DESKTOP" = "true" ]; then
+
     apt-get install -y ubuntu-desktop-minimal
+
     systemctl enable NetworkManager gdm
+
     if [ "$WITH_SNAP" = "false" ]; then
         apt-get install -y flatpak gnome-software-plugin-flatpak
+
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
         apt-get install -y firefox
     fi
+
 else
     systemctl enable NetworkManager
 fi
@@ -392,29 +459,35 @@ if [ "$WITH_SNAP" = "false" ]; then
 fi
 
 echo "--> Configuring boot entries..."
+
 if [ "$BOOT_MODE" = "uefi" ]; then
     grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=Ubuntu --recheck
 else
-    apt install grub-pc -y
     grub-install --target=i386-pc "$GRUB_DISK"
 fi
+
 update-grub
 
 echo "--> Provisioning users and system credentials..."
+
 echo "root:$ROOT_PASS" | chpasswd
 chsh -s /bin/bash root
 
 useradd -m -s /bin/bash -G sudo,plugdev,netdev,audio,video,input "$NEW_USER"
 echo "$NEW_USER:$NEW_USER_PASS" | chpasswd
+
 CHROOT_EOF
 
     # =============================================================================
     # Cleanup
     # =============================================================================
+
     info "Tear down external bind structures..."
+
     for dir in /run /sys /proc /dev/pts /dev; do
         umount "$TARGET$dir" || true
     done
+
 fi
 
 echo "=========================================================="
