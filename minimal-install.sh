@@ -413,7 +413,7 @@ CHROOT_EOF
     # =============================================================================
     info "Tear down external bind structures..."
     for dir in /run /sys /proc /dev/pts /dev; do
-        umount "$TARGET$dir" ||-true
+        umount "$TARGET$dir" || true
     done
 fi
 
