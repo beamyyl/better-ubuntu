@@ -1,6 +1,6 @@
-# This repo includes several scripts that make Ubuntu a better distro, including setup for other DE's and fully de-snapping it. If you're installing with the ubuntu server iso (for 0 bloat), CLONE this repo to the USB, if you're using USB Tethering¹ for network. 
+# This repo includes several scripts that make Ubuntu a better distro, including setup for other DE's and fully de-snapping it, and [an installer](https://github.com/beamyyl/better-ubuntu/blob/main/minimal-install.sh).
 
-The "setup.sh" script fully removes SNAPS and snap-apps, INCLUDING FIREFOX!
+The [setup.sh](https://github.com/beamyyl/better-ubuntu/blob/main/setup.sh) script fully removes SNAPS and snap-apps, INCLUDING FIREFOX!
 Make sure to run this script without setting up the default firefox, because everything **WILL BE PURGED**.
 
 ## Installation
@@ -21,7 +21,3 @@ chmod +x setup.sh
 ```bash
 ./setup.sh
 ```
-
-#
-
-¹: If after installing you're stuck on service 'systemd-networkd-wait-online', you must reboot into the grub menu, press `e`, go to the end of the Linux line and add `init=/bin/bash`, then `ctrl + x` or `F10`. After it boots, run `mount -o remount,rw /` and `systemctl --root=/ mask systemd-networkd-wait-online.service` and force reboot. Then, run the fix usb tethering script (from the usb cloned repo) by mounting your usb to /mnt and then copying it like `cp -r /mnt/better-ubuntu .` and you should be able to run the `servertonormal.sh` script to enable NetworkManager.
