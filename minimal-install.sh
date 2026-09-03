@@ -302,7 +302,6 @@ else
     echo 'network:
   version: 2
   renderer: NetworkManager' | tee /etc/netplan/01-network-manager.yaml
-
     systemctl enable NetworkManager
     netplan generate
 fi
