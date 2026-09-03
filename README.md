@@ -1,4 +1,4 @@
-# This repo includes several scripts that make Ubuntu a better distro, including setup for other DE's and fully de-snapping it, and [an installer](https://github.com/beamyyl/better-ubuntu/blob/main/minimal-install.sh).
+# This repo includes several scripts that make Ubuntu a better distro, including setup for other DE's and fully de-snapping it and [an installer](https://github.com/beamyyl/better-ubuntu/blob/main/minimal-install.sh).
 
 The [setup.sh](https://github.com/beamyyl/better-ubuntu/blob/main/setup.sh) script fully removes SNAPS and snap-apps, INCLUDING FIREFOX!
 Make sure to run this script without setting up the default firefox, because everything **WILL BE PURGED**.
