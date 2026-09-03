@@ -449,7 +449,10 @@ else
     netplan generate
 fi
 systemctl disable NetworkManager-wait-online
-apt purge ubuntu-advantage-tools ubuntu-pro-client -y
+ln -sf /dev/null /etc/apt/apt.conf.d/20apt-esm-hook.conf
+rm -f /etc/update-motd.d/88-esm-announce
+systemctl disable --now apt-news.service esm-cache.service 2>/dev/null
+systemctl mask apt-news.service esm-cache.service 2>/dev/null
 
 if [ "$WITH_SNAP" = "false" ]; then
     apt-get purge -y snapd || true
