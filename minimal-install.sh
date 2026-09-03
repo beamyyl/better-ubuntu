@@ -291,21 +291,20 @@ else
 fi
 
 if [ "$INSTALL_DESKTOP" = "true" ]; then
-
     apt-get install -y ubuntu-desktop-minimal wl-clipboard
-
     systemctl enable NetworkManager gdm
-
     if [ "$WITH_SNAP" = "false" ]; then
         apt-get install -y flatpak gnome-software-plugin-flatpak
-
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-
         apt-get install -y firefox
     fi
-
 else
+    echo 'network:
+  version: 2
+  renderer: NetworkManager' | tee /etc/netplan/01-network-manager.yaml
+
     systemctl enable NetworkManager
+    netplan generate
 fi
 
 if [ "$WITH_SNAP" = "false" ]; then
@@ -436,7 +435,7 @@ else
 fi
 
 if [ "$INSTALL_DESKTOP" = "true" ]; then
-    apt-get install -y ubuntu-desktop-minimal
+    apt-get install -y ubuntu-desktop-minimal wl-clipboard
     systemctl enable NetworkManager gdm
     if [ "$WITH_SNAP" = "false" ]; then
         apt-get install -y flatpak gnome-software-plugin-flatpak
@@ -444,12 +443,11 @@ if [ "$INSTALL_DESKTOP" = "true" ]; then
         apt-get install -y firefox
     fi
 else
-echo 'network:
+    echo 'network:
   version: 2
   renderer: NetworkManager' | tee /etc/netplan/01-network-manager.yaml
     systemctl enable NetworkManager
-    sudo netplan generate
-    sudo netplan apply
+    netplan generate
 fi
 systemctl disable NetworkManager-wait-online
 
