@@ -51,6 +51,10 @@ echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codenam
 sudo apt update
 sudo apt upgrade -y
 sudo apt autoremove -y
+sudo ln -sf /dev/null /etc/apt/apt.conf.d/20apt-esm-hook.conf
+sudo rm -f /etc/update-motd.d/88-esm-announce
+sudo systemctl disable --now apt-news.service esm-cache.service 2>/dev/null
+sudo systemctl mask apt-news.service esm-cache.service 2>/dev/null
 
 echo ""
 read -p "Would you like to install Firefox back as a native .deb? (y/N): " choice
