@@ -427,7 +427,7 @@ fi
 echo "--> Pulling base kernel, boot management, and network stuff"
 
 apt-get install -y linux-image-generic network-manager
-apt-get install -y bash
+apt-get install -y bash sudo
 
 if [ "$BOOT_MODE" = "uefi" ]; then
     apt-get install -y grub-efi-amd64
@@ -436,22 +436,22 @@ else
 fi
 
 if [ "$INSTALL_DESKTOP" = "true" ]; then
-
     apt-get install -y ubuntu-desktop-minimal
-
     systemctl enable NetworkManager gdm
-
     if [ "$WITH_SNAP" = "false" ]; then
         apt-get install -y flatpak gnome-software-plugin-flatpak
-
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-
         apt-get install -y firefox
     fi
-
 else
+echo 'network:
+  version: 2
+  renderer: NetworkManager' | tee /etc/netplan/01-network-manager.yaml
     systemctl enable NetworkManager
+    sudo netplan generate
+    sudo netplan apply
 fi
+systemctl disable NetworkManager-wait-online
 
 if [ "$WITH_SNAP" = "false" ]; then
     apt-get purge -y snapd || true
