@@ -449,6 +449,7 @@ else
     netplan generate
 fi
 systemctl disable NetworkManager-wait-online
+apt purge ubuntu-advantage-tools ubuntu-pro-client -y
 
 if [ "$WITH_SNAP" = "false" ]; then
     apt-get purge -y snapd || true
