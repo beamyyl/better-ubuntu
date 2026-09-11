@@ -1,7 +1,6 @@
 #!/bin/bash
-
 # =============================================================================
-# Ubuntu Install Script
+# YAUIS (Yet Another Ubuntu Install Script)
 # Supports: UEFI or BIOS
 # =============================================================================
 
@@ -13,13 +12,9 @@ warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 die()   { echo -e "${RED}[FAIL]${NC}  $*"; exit 1; }
 ask()   { echo -e "${CYAN}[INPUT]${NC} $*"; }
 
-# Configuration
 RELEASE="${1:-resolute}"
 TARGET="/mnt"
 
-# =============================================================================
-# Sanity checks
-# =============================================================================
 if ! mountpoint -q "$TARGET"; then
     die "$TARGET is not a target mountpoint. Please mount your root partition."
 fi
@@ -27,9 +22,6 @@ fi
 echo 'The default release is Resolute. If you want to install another release, run the script like this: "./minimal-install.sh noble"'
 sleep 1
 
-# =============================================================================
-# Boot mode selection
-# =============================================================================
 ask "Boot mode — are you using UEFI or BIOS?"
 ask "  1) UEFI (modern, GPT disk)"
 ask "  2) BIOS (legacy/older, MBR/GPT disk)"
@@ -50,9 +42,6 @@ else
     [ -z "$GRUB_DISK" ] && die "Disk cannot be empty."
 fi
 
-# =============================================================================
-# Snap Preference Selection
-# =============================================================================
 ask "Do you want to include Snap packages or remove/block them entirely?"
 ask "  1) Without Snap"
 ask "  2) With Snap (default on Ubuntu)"
@@ -66,9 +55,6 @@ else
     info "Snap will be left enabled."
 fi
 
-# =============================================================================
-# User Input (Hostname & Desktop)
-# =============================================================================
 ask "Enter desired hostname for the new system:"
 read -rp "  Hostname [ubuntu]: " HOSTNAME
 HOSTNAME="${HOSTNAME:-ubuntu}"
@@ -77,9 +63,6 @@ ask "Install GNOME Desktop (ubuntu-desktop-minimal)? [y/N]:"
 read -rp "  Choice: " DESKTOP_CHOICE
 [[ "$DESKTOP_CHOICE" =~ ^[Yy]$ ]] && INSTALL_DESKTOP="true" || INSTALL_DESKTOP="false"
 
-# =============================================================================
-# Environment Setup
-# =============================================================================
 info "Detecting host environment package mirror..."
 
 if command -v arch-chroot &> /dev/null; then
@@ -119,9 +102,6 @@ else
     die "Unsupported host distribution. This script requires an Ubuntu/Debian or Arch Linux live environment."
 fi
 
-# =============================================================================
-# User Credentials
-# =============================================================================
 ask "Enter desired username for the new user:"
 read -rp "  Username: " username
 
@@ -151,9 +131,6 @@ fi
 
 echo ""
 
-# =============================================================================
-# Installation
-# =============================================================================
 info "Bootstrapping base system via debootstrap"
 
 if command -v arch-chroot &> /dev/null; then
@@ -186,9 +163,6 @@ ff02::1     ip6-allnodes
 ff02::2     ip6-allrouters
 HOSTS
 
-# =============================================================================
-# Chroot execution
-# =============================================================================
 if command -v arch-chroot &> /dev/null; then
 
     info "Using arch-chroot environment execution..."
@@ -478,10 +452,6 @@ useradd -m -s /bin/bash -G sudo,plugdev,netdev,audio,video,input "$NEW_USER"
 echo "$NEW_USER:$NEW_USER_PASS" | chpasswd
 
 CHROOT_EOF
-
-    # =============================================================================
-    # Cleanup
-    # =============================================================================
 
     info "Tear down external bind structures..."
 
