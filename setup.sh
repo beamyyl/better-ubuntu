@@ -55,6 +55,7 @@ sudo ln -sf /dev/null /etc/apt/apt.conf.d/20apt-esm-hook.conf
 sudo rm -f /etc/update-motd.d/88-esm-announce
 sudo systemctl disable --now apt-news.service esm-cache.service 2>/dev/null
 sudo systemctl mask apt-news.service esm-cache.service 2>/dev/null
+sudo systemctl disable NetworkManager-wait-online 2>/dev/null
 
 echo ""
 read -p "Would you like to install Firefox back as a native .deb? (y/N): " choice
