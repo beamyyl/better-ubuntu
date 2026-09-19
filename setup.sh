@@ -7,7 +7,7 @@ sudo dpkg --add-architecture i386
 
 sudo apt update
 sudo apt install flatpak gnome-software-plugin-flatpak -y
-flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
 sudo systemctl stop snapd.service snapd.socket 2>/dev/null
 
@@ -47,6 +47,33 @@ path-exclude=/etc/chromium-browser/*
 EOF
 
 echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' | sudo tee /etc/apt/apt.conf.d/51unattended-upgrades-thunderbird
+
+sudo tee /usr/local/sbin/enable-apt-sources > /dev/null << 'EOF'
+#!/bin/bash
+
+for file in /etc/apt/sources.list.d/*; do
+    [ -f "$file" ] || continue
+
+    sed -i 's/^[[:space:]]*Enabled:[[:space:]]*no[[:space:]]*$/Enabled: yes/' "$file"
+done
+EOF
+
+sudo chmod +x /usr/local/sbin/enable-apt-sources
+
+sudo tee /etc/systemd/system/enable-apt-sources.service > /dev/null << 'EOF'
+[Unit]
+Description=Enable all APT sources
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/enable-apt-sources
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl enable enable-apt-sources.service
 
 sudo apt update
 sudo apt upgrade -y
