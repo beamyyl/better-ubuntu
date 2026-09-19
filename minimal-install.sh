@@ -285,6 +285,33 @@ if [ "$WITH_SNAP" = "false" ]; then
     rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd /usr/lib/snapd
 fi
 
+cat << 'EOF' > /usr/local/sbin/enable-apt-sources
+#!/bin/bash
+
+for file in /etc/apt/sources.list.d/*; do
+    [ -f "$file" ] || continue
+
+    sed -i 's/^[[:space:]]*Enabled:[[:space:]]*no[[:space:]]*$/Enabled: yes/' "$file"
+done
+EOF
+
+chmod +x /usr/local/sbin/enable-apt-sources
+
+cat << 'EOF' > /etc/systemd/system/enable-apt-sources.service
+[Unit]
+Description=Enable all APT sources
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/enable-apt-sources
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable enable-apt-sources.service
+
 echo "--> Configuring boot entries..."
 
 if [ "$BOOT_MODE" = "uefi" ]; then
@@ -385,6 +412,33 @@ EOF
 
     echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' | tee /etc/apt/apt.conf.d/51unattended-upgrades-thunderbird
 fi
+
+cat << 'EOF' > /usr/local/sbin/enable-apt-sources
+#!/bin/bash
+
+for file in /etc/apt/sources.list.d/*; do
+    [ -f "$file" ] || continue
+
+    sed -i 's/^[[:space:]]*Enabled:[[:space:]]*no[[:space:]]*$/Enabled: yes/' "$file"
+done
+EOF
+
+chmod +x /usr/local/sbin/enable-apt-sources
+
+cat << 'EOF' > /etc/systemd/system/enable-apt-sources.service
+[Unit]
+Description=Enable all APT sources
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/enable-apt-sources
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable enable-apt-sources.service
 
 apt-get update
 apt-get install -y software-properties-common gnupg
