@@ -506,13 +506,9 @@ useradd -m -s /bin/bash -G sudo,plugdev,netdev,audio,video,input "$NEW_USER"
 echo "$NEW_USER:$NEW_USER_PASS" | chpasswd
 
 CHROOT_EOF
-
-    info "Tear down external bind structures..."
-
     for dir in /run /sys /proc /dev/pts /dev; do
         umount "$TARGET$dir" || true
     done
-
 fi
 
 echo "=========================================================="
