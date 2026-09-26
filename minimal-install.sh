@@ -476,11 +476,6 @@ else
     systemctl enable NetworkManager
     netplan generate
 fi
-systemctl disable NetworkManager-wait-online
-ln -sf /dev/null /etc/apt/apt.conf.d/20apt-esm-hook.conf
-rm -f /etc/update-motd.d/88-esm-announce
-systemctl disable --now apt-news.service esm-cache.service 2>/dev/null
-systemctl mask apt-news.service esm-cache.service 2>/dev/null
 
 if [ "$WITH_SNAP" = "false" ]; then
     apt-get purge -y snapd || true
@@ -494,11 +489,13 @@ if [ "$BOOT_MODE" = "uefi" ]; then
 else
     grub-install --target=i386-pc "$GRUB_DISK"
 fi
+systemctl mask NetworkManager-wait-online --force 2>/dev/null
+rm -f /etc/apt/apt.conf.d/20apt-esm-hook.conf /etc/update-motd.d/88-esm-announce
+systemctl mask apt-news.service esm-cache.service --force 2>/dev/null
 
 update-grub
 
 echo "--> Provisioning users and system credentials..."
-
 echo "root:$ROOT_PASS" | chpasswd
 chsh -s /bin/bash root
 
