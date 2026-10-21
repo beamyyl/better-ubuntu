@@ -1,9 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # YAUIS (Yet Another Ubuntu Install Script)
-# Supports: UEFI or BIOS
 # =============================================================================
-
 set -e
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
@@ -18,10 +16,8 @@ TARGET="/mnt"
 if ! mountpoint -q "$TARGET"; then
     die "$TARGET is not a target mountpoint. Please mount your root partition."
 fi
-
 echo 'The default release is Resolute. If you want to install another release, run the script like this: "./minimal-install.sh noble"'
 sleep 1
-
 ask "Boot mode — are you using UEFI or BIOS?"
 ask "  1) UEFI (modern, GPT disk)"
 ask "  2) BIOS (legacy/older, MBR/GPT disk)"
@@ -29,7 +25,6 @@ read -rp "  Choice [1/2]: " BOOT_CHOICE
 
 if [ "$BOOT_CHOICE" = "1" ]; then
     BOOT_MODE="uefi"
-
     if ! mountpoint -q "$TARGET/boot/efi"; then
         die "$TARGET/boot/efi is not a target mountpoint. Please mount your EFI partition."
     fi
@@ -38,7 +33,6 @@ else
 
     ask "Enter the disk to install GRUB to (e.g. /dev/sda):"
     read -rp "  Install disk: " GRUB_DISK
-
     [ -z "$GRUB_DISK" ] && die "Disk cannot be empty."
 fi
 
@@ -62,15 +56,12 @@ HOSTNAME="${HOSTNAME:-ubuntu}"
 ask "Install GNOME Desktop (ubuntu-desktop-minimal)? [y/N]:"
 read -rp "  Choice: " DESKTOP_CHOICE
 [[ "$DESKTOP_CHOICE" =~ ^[Yy]$ ]] && INSTALL_DESKTOP="true" || INSTALL_DESKTOP="false"
-
 info "Detecting host environment package mirror..."
-
 if command -v arch-chroot &> /dev/null; then
     info "Detected Arch Linux host environment."
 
     if ! command -v debootstrap &> /dev/null; then
         info "Installing debootstrap via pacman..."
-
         # delete the next line if you are on another distro, but install debootstrap manually before continuing.
         pacman -Sy --noconfirm --needed debootstrap
     fi
@@ -128,11 +119,8 @@ echo ""
 if [ "$root_password" != "$root_password_confirm" ]; then
     die "Root passwords do not match!"
 fi
-
 echo ""
-
 info "Bootstrapping base system via debootstrap"
-
 if command -v arch-chroot &> /dev/null; then
     debootstrap --arch=amd64 "$RELEASE" "$TARGET" "$MIRROR"
 else
@@ -140,9 +128,7 @@ else
 fi
 
 info "Generating /etc/fstab configuration"
-
 ROOT_UUID=$(blkid -s UUID -o value $(findmnt -n -o SOURCE --target "$TARGET"))
-
 cat << FSTAB > "$TARGET/etc/fstab"
 UUID=$ROOT_UUID / ext4 errors=remount-ro 0 1
 FSTAB
@@ -166,11 +152,9 @@ HOSTS
 if command -v arch-chroot &> /dev/null; then
 
     info "Using arch-chroot environment execution..."
-
     if ! mountpoint -q "$TARGET"; then
         mount --bind "$TARGET" "$TARGET"
     fi
-
     arch-chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" "$WITH_SNAP" << 'CHROOT_EOF'
 
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
@@ -187,7 +171,6 @@ INSTALL_DESKTOP="$8"
 WITH_SNAP="$9"
 
 echo "--> Initializing package manager and architecture layers..."
-
 rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list
 
 cat << SOURCES > /etc/apt/sources.list.d/ubuntu.sources
@@ -309,11 +292,8 @@ ExecStart=/usr/local/sbin/enable-apt-sources
 [Install]
 WantedBy=multi-user.target
 EOF
-
 systemctl enable enable-apt-sources.service
-
 echo "--> Configuring boot entries..."
-
 if [ "$BOOT_MODE" = "uefi" ]; then
     grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=Ubuntu --recheck
 else
@@ -356,7 +336,6 @@ INSTALL_DESKTOP="$8"
 WITH_SNAP="$9"
 
 echo "--> Initializing package manager and architecture layers..."
-
 rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list
 
 cat << SOURCES > /etc/apt/sources.list.d/ubuntu.sources
@@ -403,7 +382,6 @@ Pin-Priority: -10
 EOF
 
     mkdir -p /etc/dpkg/dpkg.cfg.d
-
     cat << 'EOF' > /etc/dpkg/dpkg.cfg.d/block-browser-branding
 path-exclude=/usr/lib/firefox/distribution/*
 path-exclude=/etc/chromium/*
@@ -437,9 +415,7 @@ ExecStart=/usr/local/sbin/enable-apt-sources
 [Install]
 WantedBy=multi-user.target
 EOF
-
 systemctl enable enable-apt-sources.service
-
 apt-get update
 apt-get install -y software-properties-common gnupg
 
@@ -481,9 +457,7 @@ if [ "$WITH_SNAP" = "false" ]; then
     apt-get purge -y snapd || true
     rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd /usr/lib/snapd
 fi
-
 echo "--> Configuring boot entries..."
-
 if [ "$BOOT_MODE" = "uefi" ]; then
     grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=Ubuntu --recheck
 else
@@ -492,9 +466,7 @@ fi
 systemctl mask NetworkManager-wait-online --force 2>/dev/null
 rm -f /etc/apt/apt.conf.d/20apt-esm-hook.conf /etc/update-motd.d/88-esm-announce
 systemctl mask apt-news.service esm-cache.service --force 2>/dev/null
-
 update-grub
-
 echo "--> Provisioning users and system credentials..."
 echo "root:$ROOT_PASS" | chpasswd
 chsh -s /bin/bash root
