@@ -65,9 +65,7 @@ if command -v arch-chroot &> /dev/null; then
         # delete the next line if you are on another distro, but install debootstrap manually before continuing.
         pacman -Sy --noconfirm --needed debootstrap
     fi
-
     MIRROR="http://archive.ubuntu.com/ubuntu/"
-
 elif command -v apt-get &> /dev/null; then
 
     if ! command -v debootstrap &> /dev/null; then
