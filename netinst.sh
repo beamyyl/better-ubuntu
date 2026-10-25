@@ -252,6 +252,7 @@ if [ "$INSTALL_DESKTOP" = "true" ]; then
         apt-get install -y flatpak gnome-software-plugin-flatpak
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
         apt-get install -y firefox
+        apt-get purge gnome-terminal
     fi
 else
     echo 'network:
