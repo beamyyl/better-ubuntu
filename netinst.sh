@@ -3,20 +3,19 @@
 # YAUIS (Yet Another Ubuntu Install Script)
 # =============================================================================
 set -e
-
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
 info()  { echo -e "${GREEN}[INFO]${NC}  $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 die()   { echo -e "${RED}[FAIL]${NC}  $*"; exit 1; }
 ask()   { echo -e "${CYAN}[INPUT]${NC} $*"; }
 
-RELEASE="${1:-resolute}"
+RELEASE="${1:-stonking}"
 TARGET="/mnt"
 
 if ! mountpoint -q "$TARGET"; then
     die "$TARGET is not a target mountpoint. Please mount your root partition."
 fi
-echo 'The default release is Resolute. If you want to install another release, run the script like this: "./minimal-install.sh noble"'
+echo 'The default release is stonking. If you want to install another release, run the script like this: "./minimal-install.sh noble"'
 sleep 1
 ask "Boot mode — are you using UEFI or BIOS?"
 ask "  1) UEFI (modern, GPT disk)"
@@ -67,26 +66,22 @@ if command -v arch-chroot &> /dev/null; then
     fi
     MIRROR="http://archive.ubuntu.com/ubuntu/"
 elif command -v apt-get &> /dev/null; then
-
     if ! command -v debootstrap &> /dev/null; then
         info "debootstrap not found. Installing on live environment"
         apt-get update
         apt-get install -y debootstrap
     fi
-
     if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
         MIRROR=$(awk '/^URIs:/ {print $2; exit}' /etc/apt/sources.list.d/ubuntu.sources)
     elif [ -f /etc/apt/sources.list ]; then
         MIRROR=$(awk '/^deb / {print $2; exit}' /etc/apt/sources.list)
     fi
-
     if [ -z "$MIRROR" ]; then
         MIRROR="http://archive.ubuntu.com/ubuntu/"
         warn "Mirror auto-detection inconclusive. Falling back to default: $MIRROR"
     else
         info "Detected target mirror: $MIRROR"
     fi
-
 else
     die "Unsupported host distribution. This script requires an Ubuntu/Debian or Arch Linux live environment."
 fi
@@ -97,23 +92,17 @@ read -rp "  Username: " username
 while [ -z "$username" ]; do
     read -rp "  Username cannot be empty. Enter username: " username
 done
-
 read -s -rp "  Enter password for $username: " user_password
 echo ""
-
 read -s -rp "  Confirm password for $username: " user_password_confirm
 echo ""
-
 if [ "$user_password" != "$user_password_confirm" ]; then
     die "Passwords do not match!"
 fi
-
 read -s -rp "  Enter password for root account: " root_password
 echo ""
-
 read -s -rp "  Confirm password for root account: " root_password_confirm
 echo ""
-
 if [ "$root_password" != "$root_password_confirm" ]; then
     die "Root passwords do not match!"
 fi
@@ -148,13 +137,11 @@ ff02::2     ip6-allrouters
 HOSTS
 
 if command -v arch-chroot &> /dev/null; then
-
     info "Using arch-chroot environment execution..."
     if ! mountpoint -q "$TARGET"; then
         mount --bind "$TARGET" "$TARGET"
     fi
     arch-chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" "$WITH_SNAP" << 'CHROOT_EOF'
-
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 set -e
 
@@ -186,7 +173,6 @@ Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 SOURCES
 
 dpkg --add-architecture i386
-
 if [ "$WITH_SNAP" = "false" ]; then
     echo "--> Implementing anti-snap APT constraints..."
 
@@ -215,7 +201,6 @@ Pin-Priority: -10
 EOF
 
     mkdir -p /etc/dpkg/dpkg.cfg.d
-
     cat << 'EOF' > /etc/dpkg/dpkg.cfg.d/block-browser-branding
 path-exclude=/usr/lib/firefox/distribution/*
 path-exclude=/etc/chromium/*
@@ -224,10 +209,8 @@ EOF
 
     echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' | tee /etc/apt/apt.conf.d/51unattended-upgrades-thunderbird
 fi
-
 apt-get update
 apt-get install -y software-properties-common gnupg
-
 if [ "$WITH_SNAP" = "false" ]; then
     add-apt-repository -y ppa:xtradeb/apps
     add-apt-repository -y ppa:mozillateam/ppa
@@ -235,7 +218,6 @@ if [ "$WITH_SNAP" = "false" ]; then
 fi
 
 echo "--> Pulling base kernel, boot management, and network stuff"
-
 apt-get install -y linux-image-generic network-manager
 apt-get install -y bash
 
@@ -261,7 +243,6 @@ else
     systemctl enable NetworkManager
     netplan generate
 fi
-
 if [ "$WITH_SNAP" = "false" ]; then
     apt-get purge -y snapd || true
     rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd /usr/lib/snapd
@@ -300,7 +281,6 @@ else
 fi
 
 update-grub
-
 echo "--> Provisioning users and system credentials..."
 
 echo "root:$ROOT_PASS" | chpasswd
@@ -314,11 +294,9 @@ CHROOT_EOF
 else
 
     info "Mounting API virtual filesystems"
-
     for dir in /dev /dev/pts /proc /sys /run; do
         mount --bind "$dir" "$TARGET$dir"
     done
-
     chroot "$TARGET" /bin/bash -s "$RELEASE" "$MIRROR" "$username" "$user_password" "$root_password" "$BOOT_MODE" "$GRUB_DISK" "$INSTALL_DESKTOP" "$WITH_SNAP" << 'CHROOT_EOF'
 
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
@@ -352,7 +330,6 @@ Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 SOURCES
 
 dpkg --add-architecture i386
-
 if [ "$WITH_SNAP" = "false" ]; then
     echo "--> Implementing anti-snap APT constraints..."
 
@@ -395,13 +372,11 @@ cat << 'EOF' > /usr/local/sbin/enable-apt-sources
 
 for file in /etc/apt/sources.list.d/*; do
     [ -f "$file" ] || continue
-
     sed -i 's/^[[:space:]]*Enabled:[[:space:]]*no[[:space:]]*$/Enabled: yes/' "$file"
 done
 EOF
 
 chmod +x /usr/local/sbin/enable-apt-sources
-
 cat << 'EOF' > /etc/systemd/system/enable-apt-sources.service
 [Unit]
 Description=Enable all APT sources
@@ -426,7 +401,6 @@ if [ "$WITH_SNAP" = "false" ]; then
 fi
 
 echo "--> Pulling base kernel, boot management, and network stuff"
-
 apt-get install -y linux-image-generic network-manager
 apt-get install -y bash sudo
 
@@ -480,6 +454,4 @@ CHROOT_EOF
     done
 fi
 
-echo "=========================================================="
 echo " Done! You can now reboot your system."
-echo "=========================================================="
