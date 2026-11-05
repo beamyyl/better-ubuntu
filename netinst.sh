@@ -228,7 +228,8 @@ else
 fi
 
 if [ "$INSTALL_DESKTOP" = "true" ]; then
-    apt-get install -y ubuntu-desktop-minimal wl-clipboard
+    apt-get install -y ubuntu-desktop-minimal wl-clipboard snap snapd
+    snap install firefox
     systemctl enable NetworkManager gdm
     if [ "$WITH_SNAP" = "false" ]; then
         apt-get install -y flatpak gnome-software-plugin-flatpak
@@ -411,7 +412,8 @@ else
 fi
 
 if [ "$INSTALL_DESKTOP" = "true" ]; then
-    apt-get install -y ubuntu-desktop-minimal wl-clipboard
+    apt-get install -y ubuntu-desktop-minimal wl-clipboard snap snapd
+    snap install firefox
     systemctl enable NetworkManager gdm
     if [ "$WITH_SNAP" = "false" ]; then
         apt-get install -y flatpak gnome-software-plugin-flatpak
