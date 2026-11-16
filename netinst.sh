@@ -62,7 +62,7 @@ if command -v arch-chroot &> /dev/null; then
     if ! command -v debootstrap &> /dev/null; then
         info "Installing debootstrap via pacman..."
         # delete the next line if you are on another distro, but install debootstrap manually before continuing.
-        pacman -Sy --noconfirm --needed debootstrap
+        pacman -Sy --noconfirm --needed debootstrap libeatmydata
     fi
     MIRROR="http://archive.ubuntu.com/ubuntu/"
 elif command -v apt-get &> /dev/null; then
@@ -109,7 +109,7 @@ fi
 echo ""
 info "Bootstrapping base system via debootstrap"
 if command -v arch-chroot &> /dev/null; then
-    debootstrap --arch=amd64 "$RELEASE" "$TARGET" "$MIRROR"
+    eatmydata debootstrap --arch=amd64 "$RELEASE" "$TARGET" "$MIRROR"
 else
     debootstrap --arch=amd64 --keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg "$RELEASE" "$TARGET" "$MIRROR"
 fi
