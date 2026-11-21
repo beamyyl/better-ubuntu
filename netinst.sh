@@ -109,7 +109,7 @@ fi
 echo ""
 info "Bootstrapping base system via debootstrap"
 if command -v arch-chroot &> /dev/null; then
-    eatmydata debootstrap --arch=amd64 "$RELEASE" "$TARGET" "$MIRROR"
+    eatmydata debootstrap --variant=minbase --arch=amd64 --no-check-gpg "$RELEASE" "$TARGET" "$MIRROR"
 else
     debootstrap --arch=amd64 --keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg "$RELEASE" "$TARGET" "$MIRROR"
 fi
